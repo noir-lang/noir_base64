@@ -1,0 +1,7 @@
+[package]
+name = "noir_base64"
+type = "bin"
+authors = [""]
+compiler_version = ">=0.31.0"
+
+[dependencies]
