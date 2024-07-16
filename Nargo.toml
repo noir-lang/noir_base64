@@ -1,6 +1,6 @@
 [package]
 name = "noir_base64"
-type = "bin"
+type = "lib"
 authors = [""]
 compiler_version = ">=0.31.0"
 
