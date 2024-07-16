@@ -175,13 +175,6 @@ pub fn base64_decode<let InputBytes: u64, let OutputElements: u64>(input: [u8; I
     base64_decode_elements(result)
 }
 
-// // to measure, run `info.sh`
-// fn main(x: [u8; 44]) {
-//     for i in 0..1 {
-//         let r: [u8; 32] = base64_encode(x);
-//         println(f"{r}");
-//     }
-// }
 
 // ooook so we take ascii and encode as base64, we get an undefined character
 #[test]
