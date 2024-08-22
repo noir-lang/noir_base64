@@ -21,14 +21,15 @@ noir_rsa = { tag = "v0.2.0", git = "https://github.com/noir-lang/noir_base64" }
 
 The library offers 4 functions; `fn base64_encode`, `fn base64_decode`, `fn base64_encode_elements` & `fn base64_decode_elements`. Find descriptions per method below. 
 
-In this example we take input `"Noir"` represented in ASCII, and encode this into Base64. The result is either "packed" together or given as separate elements. (Refer to the methods descriptions below.)
+In this example we take input `"Noir"` represented in ASCII, and encode this into Base64. The result is either "packed" together or given as separate elements. (Refer to the method descriptions below.)
 
 Define the input in ASCII (`"N"` = 78, `"o"`= 111, `"i"`= 105, `"r"`= 114):
 ```rust
 let input: [u8; 4] = [78, 111, 105, 114];
 ```
 
-Encode either into a concatenated array or each Base64 element in a separate byte (Base64 values only take up 6 bits of space, see full explanation of the conversion + mapping table below):
+Encode either into a concatenated array or each Base64 element in a separate byte; Base64 values only take up 6 bits of space, see full explanation of the conversion + mapping table below.
+
 ```rust
 // Packed
 let result_packed: [u8; 3] = noir_base64::base64_encode(input);
@@ -107,6 +108,10 @@ The output in Base64 will be:
 Base64 values are 6 bits and this library offers 2 way to output the result; `base64_encode` or `base64_encode_elements`. 
 
 For `base64_encode_elements` each value is stored in a different byte, which in this case results in: `[13, 40, 34, 43]`.
+```rust
+let result_elements: [u8; 4] = noir_base64::base64_encode_elements(input);
+assert(result_elements == [13, 40, 34, 43]);
+```
 
 For `base64_encode` concatenate the values and then split them up into bytes. As follows:
 1. Rewrite all values to binary:
@@ -124,7 +129,10 @@ For `base64_encode` concatenate the values and then split them up into bytes. As
 ```
 4. Convert to decimal: `[54, 136, 171]`
 
-
+```rust
+let result_packed: [u8; 3] = noir_base64::base64_encode(input);
+assert(result_packed == [54, 136, 171]);
+```
 
 ## Methods
 
