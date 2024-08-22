@@ -1,7 +1,6 @@
 use dep::noir_base64;
 
-fn main(){
-}
+fn main() {}
 
 #[test]
 fn test_encode_elements_noir() {
@@ -9,7 +8,7 @@ fn test_encode_elements_noir() {
 
     // "Noir" in ASCII equals [78, 111, 105, 114]
     let input: [u8; 4] = [78, 111, 105, 114];
-    
+
     // Mapping to Base64
     // N -> 13
     // o -> 40
@@ -25,7 +24,7 @@ fn test_encode_packed_noir() {
 
     // "Noir" in ASCII equals [78, 111, 105, 114]
     let input: [u8; 4] = [78, 111, 105, 114];
-    
+
     // Mapping to Base64
     // N -> 13
     // o -> 40
