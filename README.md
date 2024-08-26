@@ -15,7 +15,7 @@ In your _Nargo.toml_ file, add the version of this library you would like to ins
 
 ```
 [dependencies]
-noir_rsa = { tag = "v0.2.0", git = "https://github.com/noir-lang/noir_base64" }
+noir_base64 = { tag = "v0.2.0", git = "https://github.com/noir-lang/noir_base64" }
 ```
 ## Quickstart
 
