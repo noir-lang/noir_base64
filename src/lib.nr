@@ -41,7 +41,7 @@ impl Base64DecodeBE {
                 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,// 26-51 (a-z)
                 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,// 52-61
                 43,// 62
-                62// 63
+                47// 63
             ]
         }
     }
@@ -252,4 +252,13 @@ fn test_base64_decode() {
 
     let result: [u8; 43] = base64_decode(input);
     assert(result == expected);
+}
+
+#[test]
+fn test_base64_decode_slash() {
+    let input: [u8; 1] = [63]; // '/' in Base64
+    let result: [u8;1] = base64_decode_elements(input);
+
+    // Should map to '/' in ASCII, which is 47
+    assert(result[0] == 47);
 }
