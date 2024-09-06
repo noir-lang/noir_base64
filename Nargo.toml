@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "lib",
+    "examples/example1",
+    "examples/example2",
+]
