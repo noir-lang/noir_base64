@@ -1,5 +1,5 @@
 struct Base64EncodeBE {
-    table: [u8; 128]
+    table: [u8; 256]
 }
 impl Base64EncodeBE {
     fn new() -> Self {
@@ -20,7 +20,11 @@ impl Base64EncodeBE {
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,// 65-90 (A-Z)
                 0, 0, 0, 0, 0, 0,// 91-96
                 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,// 97-122 (a-z)
-                0, 0, 0, 0, 0// 123-127
+                0, 0, 0, 0, 0,// 123-127
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             ]
         }
     }
@@ -103,7 +107,7 @@ pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
             slice *= 64;
             slice += encoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
         }
-        let slice_bytes: [u8; 30] = slice.to_be_bytes(30).as_array();
+        let slice_bytes: [u8; 30] = slice.to_be_bytes();
         for j in 0..BYTES_PER_CHUNK {
             result[i * BYTES_PER_CHUNK + j] = slice_bytes[j];
         }
@@ -120,7 +124,7 @@ pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
         slice *= 64;
     }
     // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
-    let slice_bytes: [u8; 30] = slice.to_be_bytes(30).as_array();
+    let slice_bytes: [u8; 30] = slice.to_be_bytes();
     let num_bytes_in_final_chunk = OutputBytes - ((num_chunks - 1) * BYTES_PER_CHUNK);
     for i in 0..num_bytes_in_final_chunk {
         result[(num_chunks - 1) * BYTES_PER_CHUNK + i] = slice_bytes[i];
@@ -148,7 +152,7 @@ pub fn base64_decode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
             slice += input[i * BYTES_PER_CHUNK + j] as Field;
         }
 
-        let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64, 40).as_array();
+        let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
         for j in 0..BASE64_ELEMENTS_PER_CHUNK {
             result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
         }
@@ -166,7 +170,7 @@ pub fn base64_decode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
     }
 
     // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
-    let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64, 40).as_array();
+    let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
 
     let num_elements_in_final_chunk = OutputElements - ((num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK);
     for i in 0..num_elements_in_final_chunk {
