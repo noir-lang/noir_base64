@@ -2,6 +2,6 @@
 name = "noir_base64"
 type = "lib"
 authors = [""]
-compiler_version = ">=0.31.0"
+compiler_version = ">=0.34.0"
 
 [dependencies]
