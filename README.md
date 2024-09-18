@@ -4,8 +4,8 @@ A library to encode ASCII into Base64 and decode Base64 into ASCII.
 
 ## Dependencies
 
-- Noir ≥v0.31.0
-- Barretenberg ≥v0.46.1
+- Noir ≥v0.34.0
+- Compatible version of a proving backend, eg Barretenberg
 
 Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/installation/) and [Barretenberg's docs](https://github.com/AztecProtocol/aztec-packages/blob/master/barretenberg/cpp/src/barretenberg/bb/readme.md#installation) for installation steps.
 
