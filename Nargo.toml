@@ -1,6 +1,7 @@
-[workspace]
-members = [
-    "lib",
-    "examples/example1",
-    "examples/example2",
-]
+[package]
+name = "noir_base64"
+type = "lib"
+authors = [""]
+compiler_version = ">=0.34.0"
+
+[dependencies]
