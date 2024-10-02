@@ -89,6 +89,8 @@ pub fn base64_encode_elements<let InputElements: u32>(input: [u8; InputElements]
  * @brief Take an array of ASCII bytes of encoded base64 data and decode them into ASCII bytes
  **/
 pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; InputElements]) -> [u8; OutputBytes] {
+    assert((OutputBytes + 2) / 3 * 4 == InputElements);
+
     let encoded: [u8; InputElements] = base64_decode_elements(input);
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
@@ -139,6 +141,8 @@ pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
+    assert((InputBytes + 2) / 3 * 4 == OutputElements);
+
     let mut result: [u8; OutputElements] = [0; OutputElements];
     let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
     let BYTES_PER_CHUNK: u32 = 30;
