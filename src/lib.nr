@@ -86,9 +86,7 @@ pub fn base64_encode_elements<let InputElements: u32>(input: [u8; InputElements]
 }
 
 /**
- * @brief Take an array of ASCII values and convert into *packed* byte array of base64 values
- *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
- *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
+ * @brief Take an array of ASCII bytes of encoded base64 data and decode them into ASCII bytes
  **/
 pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; InputElements]) -> [u8; OutputBytes] {
     let encoded: [u8; InputElements] = base64_decode_elements(input);
@@ -133,7 +131,9 @@ pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
 }
 
 /**
- * @brief Take an array of packed base64 encoded bytes and convert into ASCII
+ * @brief Take an array of ASCII bytes and encodes them into base64 (returns ASCII bytes of encoded base64 data)
+ *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
+ *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
  **/
 pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; InputBytes]) -> [u8; OutputElements] {
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
