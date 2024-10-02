@@ -189,6 +189,7 @@ pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
     encoded
 }
 
+
 #[test]
 fn test_base64_encode_elements() {
     // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
@@ -215,9 +216,40 @@ fn test_base64_encode_elements() {
 }
 
 #[test]
-fn test_base64_decode() {
-    // Input: Ascii chars of Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4=
-    // which is base64 encode of "Noir gud. Noir gud. Noir gud."
+fn test_base64_decode_no_padding() {
+    // Input: "QXp0ZWMu" which is base64 encode of "Aztec."
+    let input: [u8; 8] = [
+        81, 88, 112,  48,
+        90, 87,  77, 117
+    ];
+
+    // Expected output: "Aztec."
+    let expected: [u8; 6] = [65, 122, 116, 101, 99, 46];
+
+    let result: [u8; 6] = base64_decode(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_base64_decode_two_padding() {
+    // Input: "aGVsbG93b3JsZA=="
+    let input: [u8; 16] = [
+        97, 71, 86, 115, 98,  71,
+        57, 51, 98,  51, 74, 115,
+        90, 65, 61,  61
+    ];
+
+    // Expected output: "helloworld"
+    let expected: [u8; 10] = [104, 101, 108, 108, 111, 119, 111, 114, 108, 100];
+
+    let result: [u8; 10] = base64_decode(input);
+    println(result);
+    assert(result == expected);
+}
+
+#[test]
+fn test_base64_decode_large() {
+    // Input: "Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4="
     let b64_input: [u8; 40] = [
         84, 109, 57, 112, 99, 105, 66, 110, 100,
         87, 81, 117, 73, 69, 53, 118, 97, 88,
@@ -226,7 +258,7 @@ fn test_base64_decode() {
         90, 67, 52, 61
     ];
 
-    // Expected output: Ascii chars of "Noir gud. Noir gud. Noir gud."
+    // Expected output: "Noir gud. Noir gud. Noir gud."
     let expected: [u8; 29] = [
         78, 111, 105, 114, 32, 103, 117,
         100, 46, 32, 78, 111, 105, 114,
@@ -240,8 +272,43 @@ fn test_base64_decode() {
 }
 
 #[test]
-fn test_base64_encode() {
-    // Input: Ascii chars of "Noir gud. Noir gud. Noir gud."
+fn test_base64_encode_no_padding() {
+    // Input: Ascii chars of "Aztec."
+    let input: [u8; 6] = [65, 122, 116, 101, 99, 46];
+
+    // Expected output: "Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4="
+    let expected: [u8; 8] = [
+        81, 88, 112,  48,
+        90, 87,  77, 117
+    ];
+
+    let result: [u8; 8] = base64_encode(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_base64_encode_two_padding() {
+    // Input: "helloworld"
+    let input: [u8; 10] = [
+        104, 101, 108, 108,
+        111, 119, 111, 114,
+        108, 100
+    ];
+
+    // Expected output: "aGVsbG93b3JsZA=="
+    let expected: [u8; 16] = [
+        97, 71, 86, 115, 98,  71,
+        57, 51, 98,  51, 74, 115,
+        90, 65, 61,  61
+    ];
+
+    let result: [u8; 16] = base64_encode(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_base64_encode_large() {
+    // Input: "Noir gud. Noir gud. Noir gud."
     let input: [u8; 29] = [
         78, 111, 105, 114, 32, 103, 117,
         100, 46, 32, 78, 111, 105, 114,
@@ -250,7 +317,7 @@ fn test_base64_encode() {
         46
     ];
 
-    // Expected output: Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4=
+    // Expected output: "Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4="
     let expected: [u8; 40] = [
         84, 109, 57, 112, 99, 105, 66, 110, 100,
         87, 81, 117, 73, 69, 53, 118, 97, 88,
@@ -260,7 +327,6 @@ fn test_base64_encode() {
     ];
 
     let result: [u8; 40] = base64_encode(input);
-    println(result);
     assert(result == expected);
 }
 
