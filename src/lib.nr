@@ -136,7 +136,6 @@ pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
  * @brief Take an array of packed base64 encoded bytes and convert into ASCII
  **/
 pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; InputBytes]) -> [u8; OutputElements] {
-    //  let decoded: [u8; InputBytes] = base64_encode_elements(input);
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
@@ -176,10 +175,20 @@ pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
     for i in 0..num_elements_in_final_chunk {
         result[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + i] = slice_base64_chunks[i];
     }
-    base64_encode_elements(result)
+
+    let mut encoded = base64_encode_elements(result);
+
+    // Add padding chars if necessary (replace 65 'A' with 61 '=')
+    let rem = InputBytes % 3;
+    if rem == 1 {
+        encoded[OutputElements - 1] = 61;
+        encoded[OutputElements - 2] = 61;
+    } else if rem == 2 {
+        encoded[OutputElements - 1] = 61;
+    }
+    encoded
 }
 
-// ooook so we take ascii and encode as base64, we get an undefined character
 #[test]
 fn test_base64_encode_elements() {
     // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
@@ -210,19 +219,19 @@ fn test_base64_decode() {
     // Input: Ascii chars of Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4=
     // which is base64 encode of "Noir gud. Noir gud. Noir gud."
     let b64_input: [u8; 40] = [
-        84, 109,  57, 112,  99, 105,  66, 110, 100,
-        87,  81, 117,  73,  69,  53, 118,  97,  88,
-        73, 103,  90,  51,  86, 107,  76, 105,  66,
-        79,  98,  50, 108, 121,  73,  71, 100,  49,
-        90,  67,  52,  61
+        84, 109, 57, 112, 99, 105, 66, 110, 100,
+        87, 81, 117, 73, 69, 53, 118, 97, 88,
+        73, 103, 90, 51, 86, 107, 76, 105, 66,
+        79, 98, 50, 108, 121, 73, 71, 100, 49,
+        90, 67, 52, 61
     ];
 
     // Expected output: Ascii chars of "Noir gud. Noir gud. Noir gud."
     let expected: [u8; 29] = [
-        78, 111, 105, 114,  32, 103, 117,
-        100,  46,  32,  78, 111, 105, 114,
-        32, 103, 117, 100,  46,  32,  78,
-        111, 105, 114,  32, 103, 117, 100,
+        78, 111, 105, 114, 32, 103, 117,
+        100, 46, 32, 78, 111, 105, 114,
+        32, 103, 117, 100, 46, 32, 78,
+        111, 105, 114, 32, 103, 117, 100,
         46
     ];
 
@@ -234,20 +243,20 @@ fn test_base64_decode() {
 fn test_base64_encode() {
     // Input: Ascii chars of "Noir gud. Noir gud. Noir gud."
     let input: [u8; 29] = [
-        78, 111, 105, 114,  32, 103, 117,
-        100,  46,  32,  78, 111, 105, 114,
-        32, 103, 117, 100,  46,  32,  78,
-        111, 105, 114,  32, 103, 117, 100,
+        78, 111, 105, 114, 32, 103, 117,
+        100, 46, 32, 78, 111, 105, 114,
+        32, 103, 117, 100, 46, 32, 78,
+        111, 105, 114, 32, 103, 117, 100,
         46
     ];
 
     // Expected output: Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4=
     let expected: [u8; 40] = [
-        84, 109,  57, 112,  99, 105,  66, 110, 100,
-        87,  81, 117,  73,  69,  53, 118,  97,  88,
-        73, 103,  90,  51,  86, 107,  76, 105,  66,
-        79,  98,  50, 108, 121,  73,  71, 100,  49,
-        90,  67,  52,  65
+        84, 109, 57, 112, 99, 105, 66, 110, 100,
+        87, 81, 117, 73, 69, 53, 118, 97, 88,
+        73, 103, 90, 51, 86, 107, 76, 105, 66,
+        79, 98, 50, 108, 121, 73, 71, 100, 49,
+        90, 67, 52, 61
     ];
 
     let result: [u8; 40] = base64_encode(input);
