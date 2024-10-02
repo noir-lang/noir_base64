@@ -207,54 +207,51 @@ fn test_base64_encode_elements() {
 
 #[test]
 fn test_base64_decode() {
-    // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
-    // Translated directly to ASCII
-    let input: [u8; 44] = [
-        71, 120, 77, 108, 103,
-        119, 76, 105, 121, 112,
-        110, 86, 114, 69, 50,
-        67, 48, 83, 102, 52,
-        121, 122, 104, 99, 87,
-        84, 107, 65, 104, 83,
-        90, 53, 43, 87, 69,
-        82, 104, 75, 104, 88,
-        116, 108, 85, 61
+    // Input: Ascii chars of Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4=
+    // which is base64 encode of "Noir gud. Noir gud. Noir gud."
+    let b64_input: [u8; 40] = [
+        84, 109,  57, 112,  99, 105,  66, 110, 100,
+        87,  81, 117,  73,  69,  53, 118,  97,  88,
+        73, 103,  90,  51,  86, 107,  76, 105,  66,
+        79,  98,  50, 108, 121,  73,  71, 100,  49,
+        90,  67,  52,  61
     ];
 
-    let result: [u8; 32] = base64_decode(input);
-    let expected: [u8; 32] = [
-        27, 19, 37, 131, 2, 226, 202, 153, 213, 172,
-        77, 130, 209, 39, 248, 203, 56, 92, 89, 57,
-        0, 133, 38, 121, 249, 97, 17, 132, 168, 87,
-        182, 85
+    // Expected output: Ascii chars of "Noir gud. Noir gud. Noir gud."
+    let expected: [u8; 29] = [
+        78, 111, 105, 114,  32, 103, 117,
+        100,  46,  32,  78, 111, 105, 114,
+        32, 103, 117, 100,  46,  32,  78,
+        111, 105, 114,  32, 103, 117, 100,
+        46
     ];
+
+    let result: [u8; 29] = base64_decode(b64_input);
     assert(result == expected);
 }
 
 #[test]
 fn test_base64_encode() {
-    // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU
-    // Translated directly to ASCII (with padding byte character stripped)
-    let expected: [u8; 43] = [
-        71, 120, 77, 108, 103,
-        119, 76, 105, 121, 112,
-        110, 86, 114, 69, 50,
-        67, 48, 83, 102, 52,
-        121, 122, 104, 99, 87,
-        84, 107, 65, 104, 83,
-        90, 53, 43, 87, 69,
-        82, 104, 75, 104, 88,
-        116, 108, 85
+    // Input: Ascii chars of "Noir gud. Noir gud. Noir gud."
+    let input: [u8; 29] = [
+        78, 111, 105, 114,  32, 103, 117,
+        100,  46,  32,  78, 111, 105, 114,
+        32, 103, 117, 100,  46,  32,  78,
+        111, 105, 114,  32, 103, 117, 100,
+        46
     ];
 
-    let input: [u8; 32] = [
-        27, 19, 37, 131, 2, 226, 202, 153, 213, 172,
-        77, 130, 209, 39, 248, 203, 56, 92, 89, 57,
-        0, 133, 38, 121, 249, 97, 17, 132, 168, 87,
-        182, 85
+    // Expected output: Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4=
+    let expected: [u8; 40] = [
+        84, 109,  57, 112,  99, 105,  66, 110, 100,
+        87,  81, 117,  73,  69,  53, 118,  97,  88,
+        73, 103,  90,  51,  86, 107,  76, 105,  66,
+        79,  98,  50, 108, 121,  73,  71, 100,  49,
+        90,  67,  52,  65
     ];
 
-    let result: [u8; 43] = base64_encode(input);
+    let result: [u8; 40] = base64_encode(input);
+    println(result);
     assert(result == expected);
 }
 
