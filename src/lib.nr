@@ -91,7 +91,7 @@ pub fn base64_encode_elements<let InputElements: u32>(input: [u8; InputElements]
 pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; InputElements]) -> [u8; OutputBytes] {
     assert((OutputBytes + 2) / 3 * 4 == InputElements);
 
-    let encoded: [u8; InputElements] = base64_decode_elements(input);
+    let dcoded: [u8; InputElements] = base64_decode_elements(input);
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
@@ -105,7 +105,7 @@ pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
         let mut slice: Field = 0;
         for j in 0..BASE64_ELEMENTS_PER_CHUNK {
             slice *= 64;
-            slice += encoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+            slice += dcoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
         }
         let slice_bytes: [u8; 30] = slice.to_be_bytes();
         for j in 0..BYTES_PER_CHUNK {
@@ -118,7 +118,7 @@ pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
     let mut slice: Field = 0;
     for j in 0..base64_elements_in_final_chunk {
         slice *= 64;
-        slice += encoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+        slice += dcoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
     }
     for _ in base64_elements_in_final_chunk..BASE64_ELEMENTS_PER_CHUNK {
         slice *= 64;
@@ -193,7 +193,6 @@ pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
     encoded
 }
 
-
 #[test]
 fn test_base64_encode_elements() {
     // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
@@ -223,8 +222,8 @@ fn test_base64_encode_elements() {
 fn test_base64_decode_no_padding() {
     // Input: "QXp0ZWMu" which is base64 encode of "Aztec."
     let input: [u8; 8] = [
-        81, 88, 112,  48,
-        90, 87,  77, 117
+        81, 88, 112, 48,
+        90, 87, 77, 117
     ];
 
     // Expected output: "Aztec."
@@ -238,9 +237,9 @@ fn test_base64_decode_no_padding() {
 fn test_base64_decode_two_padding() {
     // Input: "aGVsbG93b3JsZA=="
     let input: [u8; 16] = [
-        97, 71, 86, 115, 98,  71,
-        57, 51, 98,  51, 74, 115,
-        90, 65, 61,  61
+        97, 71, 86, 115, 98, 71,
+        57, 51, 98, 51, 74, 115,
+        90, 65, 61, 61
     ];
 
     // Expected output: "helloworld"
@@ -282,8 +281,8 @@ fn test_base64_encode_no_padding() {
 
     // Expected output: "Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4="
     let expected: [u8; 8] = [
-        81, 88, 112,  48,
-        90, 87,  77, 117
+        81, 88, 112, 48,
+        90, 87, 77, 117
     ];
 
     let result: [u8; 8] = base64_encode(input);
@@ -301,9 +300,9 @@ fn test_base64_encode_two_padding() {
 
     // Expected output: "aGVsbG93b3JsZA=="
     let expected: [u8; 16] = [
-        97, 71, 86, 115, 98,  71,
-        57, 51, 98,  51, 74, 115,
-        90, 65, 61,  61
+        97, 71, 86, 115, 98, 71,
+        57, 51, 98, 51, 74, 115,
+        90, 65, 61, 61
     ];
 
     let result: [u8; 16] = base64_encode(input);
