@@ -1,9 +1,9 @@
-struct Base64EncodeBE {
+struct Base64DecodeBE {
     table: [u8; 256]
 }
-impl Base64EncodeBE {
+impl Base64DecodeBE {
     fn new() -> Self {
-        Base64EncodeBE {
+        Base64DecodeBE {
             table: [
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0-9
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 10-19
@@ -34,12 +34,12 @@ impl Base64EncodeBE {
     }
 }
 
-struct Base64DecodeBE {
+struct Base64EncodeBE {
     table: [u8; 64]
 }
-impl Base64DecodeBE {
+impl Base64EncodeBE {
     fn new() -> Self {
-        Base64DecodeBE {
+        Base64EncodeBE {
             table: [
                 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,// 0-25 (A-Z)
                 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,// 26-51 (a-z)
@@ -58,21 +58,6 @@ impl Base64DecodeBE {
 /**
  * @brief Take an array of ASCII values and convert into base64 values
  **/
-pub fn base64_encode_elements<let InputElements: u32>(input: [u8; InputElements]) -> [u8; InputElements] {
-    // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
-    let mut Base64Encoder = Base64EncodeBE::new();
-
-    let mut result: [u8; InputElements] = [0; InputElements];
-
-    for i in 0..InputElements {
-        result[i] = Base64Encoder.get(input[i] as Field);
-    }
-    result
-}
-
-/**
- * @brief Take an array of base64 values and convert into ASCII values
- **/
 pub fn base64_decode_elements<let InputElements: u32>(input: [u8; InputElements]) -> [u8; InputElements] {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
     let mut Base64Decoder = Base64DecodeBE::new();
@@ -86,12 +71,27 @@ pub fn base64_decode_elements<let InputElements: u32>(input: [u8; InputElements]
 }
 
 /**
- * @brief Take an array of ASCII values and convert into *packed* byte array of base64 values
- *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
- *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
+ * @brief Take an array of base64 values and convert into ASCII values
  **/
-pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; InputElements]) -> [u8; OutputBytes] {
-    let encoded: [u8; InputElements] = base64_encode_elements(input);
+pub fn base64_encode_elements<let InputElements: u32>(input: [u8; InputElements]) -> [u8; InputElements] {
+    // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
+    let mut Base64Encoder = Base64EncodeBE::new();
+
+    let mut result: [u8; InputElements] = [0; InputElements];
+
+    for i in 0..InputElements {
+        result[i] = Base64Encoder.get(input[i] as Field);
+    }
+    result
+}
+
+/**
+ * @brief Take an array of ASCII bytes of encoded base64 data and decode them into ASCII bytes
+ **/
+pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; InputElements]) -> [u8; OutputBytes] {
+    assert((OutputBytes + 2) / 3 * 4 == InputElements);
+
+    let dcoded: [u8; InputElements] = base64_decode_elements(input);
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
@@ -105,7 +105,7 @@ pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
         let mut slice: Field = 0;
         for j in 0..BASE64_ELEMENTS_PER_CHUNK {
             slice *= 64;
-            slice += encoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+            slice += dcoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
         }
         let slice_bytes: [u8; 30] = slice.to_be_bytes();
         for j in 0..BYTES_PER_CHUNK {
@@ -118,7 +118,7 @@ pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
     let mut slice: Field = 0;
     for j in 0..base64_elements_in_final_chunk {
         slice *= 64;
-        slice += encoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+        slice += dcoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
     }
     for _ in base64_elements_in_final_chunk..BASE64_ELEMENTS_PER_CHUNK {
         slice *= 64;
@@ -133,13 +133,16 @@ pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
 }
 
 /**
- * @brief Take an array of packed base64 encoded bytes and convert into ASCII
+ * @brief Take an array of ASCII bytes and encodes them into base64 (returns ASCII bytes of encoded base64 data)
+ *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
+ *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
  **/
-pub fn base64_decode<let InputBytes: u32, let OutputElements: u32>(input: [u8; InputBytes]) -> [u8; OutputElements] {
-    //  let decoded: [u8; InputBytes] = base64_decode_elements(input);
+pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; InputBytes]) -> [u8; OutputElements] {
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
+    assert((InputBytes + 2) / 3 * 4 == OutputElements);
+
     let mut result: [u8; OutputElements] = [0; OutputElements];
     let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
     let BYTES_PER_CHUNK: u32 = 30;
@@ -176,12 +179,22 @@ pub fn base64_decode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
     for i in 0..num_elements_in_final_chunk {
         result[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + i] = slice_base64_chunks[i];
     }
-    base64_decode_elements(result)
+
+    let mut encoded = base64_encode_elements(result);
+
+    // Add padding chars if necessary (replace 65 'A' with 61 '=')
+    let rem = InputBytes % 3;
+    if rem == 1 {
+        encoded[OutputElements - 1] = 61;
+        encoded[OutputElements - 2] = 61;
+    } else if rem == 2 {
+        encoded[OutputElements - 1] = 61;
+    }
+    encoded
 }
 
-// ooook so we take ascii and encode as base64, we get an undefined character
 #[test]
-fn test_base64_decode_elements() {
+fn test_base64_encode_elements() {
     // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
     // Translated directly to ASCII (with the = padding character stripped)
     let ascii_expected: [u8; 43] = [
@@ -200,68 +213,130 @@ fn test_base64_decode_elements() {
         6, 49, 12, 37, 32, 48, 11, 34, 50, 41, 39, 21, 43, 4, 54, 2, 52, 18, 31, 56, 50, 51, 33, 28, 22, 19, 36, 0, 33, 18, 25, 57, 62, 22, 4, 17, 33, 10, 33, 23, 45, 37, 20
     ];
 
-    let ascii_result = base64_decode_elements(input);
+    let ascii_result = base64_encode_elements(input);
 
     assert(ascii_result == ascii_expected);
 }
 
 #[test]
-fn test_base64_encode() {
-    // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
-    // Translated directly to ASCII
-    let input: [u8; 44] = [
-        71, 120, 77, 108, 103,
-        119, 76, 105, 121, 112,
-        110, 86, 114, 69, 50,
-        67, 48, 83, 102, 52,
-        121, 122, 104, 99, 87,
-        84, 107, 65, 104, 83,
-        90, 53, 43, 87, 69,
-        82, 104, 75, 104, 88,
-        116, 108, 85, 61
+fn test_base64_decode_no_padding() {
+    // Input: "QXp0ZWMu" which is base64 encode of "Aztec."
+    let input: [u8; 8] = [
+        81, 88, 112, 48,
+        90, 87, 77, 117
     ];
 
-    let result: [u8; 32] = base64_encode(input);
-    let expected: [u8; 32] = [
-        27, 19, 37, 131, 2, 226, 202, 153, 213, 172,
-        77, 130, 209, 39, 248, 203, 56, 92, 89, 57,
-        0, 133, 38, 121, 249, 97, 17, 132, 168, 87,
-        182, 85
-    ];
+    // Expected output: "Aztec."
+    let expected: [u8; 6] = [65, 122, 116, 101, 99, 46];
+
+    let result: [u8; 6] = base64_decode(input);
     assert(result == expected);
 }
 
 #[test]
-fn test_base64_decode() {
-    // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU
-    // Translated directly to ASCII (with padding byte character stripped)
-    let expected: [u8; 43] = [
-        71, 120, 77, 108, 103,
-        119, 76, 105, 121, 112,
-        110, 86, 114, 69, 50,
-        67, 48, 83, 102, 52,
-        121, 122, 104, 99, 87,
-        84, 107, 65, 104, 83,
-        90, 53, 43, 87, 69,
-        82, 104, 75, 104, 88,
-        116, 108, 85
+fn test_base64_decode_two_padding() {
+    // Input: "aGVsbG93b3JsZA=="
+    let input: [u8; 16] = [
+        97, 71, 86, 115, 98, 71,
+        57, 51, 98, 51, 74, 115,
+        90, 65, 61, 61
     ];
 
-    let input: [u8; 32] = [
-        27, 19, 37, 131, 2, 226, 202, 153, 213, 172,
-        77, 130, 209, 39, 248, 203, 56, 92, 89, 57,
-        0, 133, 38, 121, 249, 97, 17, 132, 168, 87,
-        182, 85
-    ];
+    // Expected output: "helloworld"
+    let expected: [u8; 10] = [104, 101, 108, 108, 111, 119, 111, 114, 108, 100];
 
-    let result: [u8; 43] = base64_decode(input);
+    let result: [u8; 10] = base64_decode(input);
+    println(result);
     assert(result == expected);
 }
 
 #[test]
-fn test_base64_decode_slash() {
+fn test_base64_decode_large() {
+    // Input: "Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4="
+    let b64_input: [u8; 40] = [
+        84, 109, 57, 112, 99, 105, 66, 110, 100,
+        87, 81, 117, 73, 69, 53, 118, 97, 88,
+        73, 103, 90, 51, 86, 107, 76, 105, 66,
+        79, 98, 50, 108, 121, 73, 71, 100, 49,
+        90, 67, 52, 61
+    ];
+
+    // Expected output: "Noir gud. Noir gud. Noir gud."
+    let expected: [u8; 29] = [
+        78, 111, 105, 114, 32, 103, 117,
+        100, 46, 32, 78, 111, 105, 114,
+        32, 103, 117, 100, 46, 32, 78,
+        111, 105, 114, 32, 103, 117, 100,
+        46
+    ];
+
+    let result: [u8; 29] = base64_decode(b64_input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_base64_encode_no_padding() {
+    // Input: Ascii chars of "Aztec."
+    let input: [u8; 6] = [65, 122, 116, 101, 99, 46];
+
+    // Expected output: "Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4="
+    let expected: [u8; 8] = [
+        81, 88, 112, 48,
+        90, 87, 77, 117
+    ];
+
+    let result: [u8; 8] = base64_encode(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_base64_encode_two_padding() {
+    // Input: "helloworld"
+    let input: [u8; 10] = [
+        104, 101, 108, 108,
+        111, 119, 111, 114,
+        108, 100
+    ];
+
+    // Expected output: "aGVsbG93b3JsZA=="
+    let expected: [u8; 16] = [
+        97, 71, 86, 115, 98, 71,
+        57, 51, 98, 51, 74, 115,
+        90, 65, 61, 61
+    ];
+
+    let result: [u8; 16] = base64_encode(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_base64_encode_large() {
+    // Input: "Noir gud. Noir gud. Noir gud."
+    let input: [u8; 29] = [
+        78, 111, 105, 114, 32, 103, 117,
+        100, 46, 32, 78, 111, 105, 114,
+        32, 103, 117, 100, 46, 32, 78,
+        111, 105, 114, 32, 103, 117, 100,
+        46
+    ];
+
+    // Expected output: "Tm9pciBndWQuIE5vaXIgZ3VkLiBOb2lyIGd1ZC4="
+    let expected: [u8; 40] = [
+        84, 109, 57, 112, 99, 105, 66, 110, 100,
+        87, 81, 117, 73, 69, 53, 118, 97, 88,
+        73, 103, 90, 51, 86, 107, 76, 105, 66,
+        79, 98, 50, 108, 121, 73, 71, 100, 49,
+        90, 67, 52, 61
+    ];
+
+    let result: [u8; 40] = base64_encode(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_base64_encode_slash() {
     let input: [u8; 1] = [63]; // '/' in Base64
-    let result: [u8;1] = base64_decode_elements(input);
+    let result: [u8;1] = base64_encode_elements(input);
 
     // Should map to '/' in ASCII, which is 47
     assert(result[0] == 47);
