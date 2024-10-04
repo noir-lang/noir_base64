@@ -1,9 +1,9 @@
-struct Base64EncodeBE {
+struct Base64DecodeBE {
     table: [u8; 256]
 }
-impl Base64EncodeBE {
+impl Base64DecodeBE {
     fn new() -> Self {
-        Base64EncodeBE {
+        Base64DecodeBE {
             table: [
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0-9
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 10-19
@@ -34,12 +34,12 @@ impl Base64EncodeBE {
     }
 }
 
-struct Base64DecodeBE {
+struct Base64EncodeBE {
     table: [u8; 64]
 }
-impl Base64DecodeBE {
+impl Base64EncodeBE {
     fn new() -> Self {
-        Base64DecodeBE {
+        Base64EncodeBE {
             table: [
                 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,// 0-25 (A-Z)
                 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,// 26-51 (a-z)
@@ -60,12 +60,12 @@ impl Base64DecodeBE {
  **/
 pub fn base64_decode_elements<let InputElements: u32>(input: [u8; InputElements]) -> [u8; InputElements] {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
-    let mut Base64Encoder = Base64EncodeBE::new();
+    let mut Base64Decoder = Base64DecodeBE::new();
 
     let mut result: [u8; InputElements] = [0; InputElements];
 
     for i in 0..InputElements {
-        result[i] = Base64Encoder.get(input[i] as Field);
+        result[i] = Base64Decoder.get(input[i] as Field);
     }
     result
 }
@@ -75,12 +75,12 @@ pub fn base64_decode_elements<let InputElements: u32>(input: [u8; InputElements]
  **/
 pub fn base64_encode_elements<let InputElements: u32>(input: [u8; InputElements]) -> [u8; InputElements] {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
-    let mut Base64Decoder = Base64DecodeBE::new();
+    let mut Base64Encoder = Base64EncodeBE::new();
 
     let mut result: [u8; InputElements] = [0; InputElements];
 
     for i in 0..InputElements {
-        result[i] = Base64Decoder.get(input[i] as Field);
+        result[i] = Base64Encoder.get(input[i] as Field);
     }
     result
 }
