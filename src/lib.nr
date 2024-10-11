@@ -211,6 +211,23 @@ fn test_base64_encode_elements() {
 }
 
 #[test]
+fn test_encode_empty() {
+    let input: [u8; 0] = [];
+    let result = base64_encode(input);
+    let expected: [u8; 0] = [];
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_decode_empty() {
+    let input: [u8; 0] = [];
+    let expected: [u8; 0] = [];
+    let result = base64_decode(input);
+    assert(result == expected);
+}
+
+#[test]
 fn test_base64_decode() {
     // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
     // Translated directly to ASCII
