@@ -1,9 +1,37 @@
 struct Base64EncodeBE {
-    table: [u8; 256]
+    table: [u8; 64]
 }
 impl Base64EncodeBE {
+    /// Creates a new encoder that uses the standard Base64 Alphabet (base64) specified in RFC 4648 
+    /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
     fn new() -> Self {
         Base64EncodeBE {
+            // The alphabet values here are standard UTF-8 (and ASCII) byte encodings, so the index
+            // in the table is the 6-bit Base64 value, and the value at that index is the UTF-8 
+            // encoding of that value.
+            table: [
+                65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,// 0-25 (A-Z)
+                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,// 26-51 (a-z)
+                48, 49, 50, 51, 52, 53, 54, 55, 56, 57,// 0-9
+                43,// +
+                47// /
+            ]
+        }
+    }
+
+    fn get(self, idx: Field) -> u8 {
+        self.table[idx]
+    }
+}
+
+struct Base64DecodeBE {
+    table: [u8; 256]
+}
+impl Base64DecodeBE {
+    /// Creates a new decoder that uses the standard Base64 Alphabet (base64) specified in RFC 4648
+    /// https://datatracker.ietf.org/doc/html/rfc4648#section-4
+    fn new() -> Self {
+        Base64DecodeBE {
             table: [
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0-9
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 10-19
@@ -25,27 +53,6 @@ impl Base64EncodeBE {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-            ]
-        }
-    }
-
-    fn get(self, idx: Field) -> u8 {
-        self.table[idx]
-    }
-}
-
-struct Base64DecodeBE {
-    table: [u8; 64]
-}
-impl Base64DecodeBE {
-    fn new() -> Self {
-        Base64DecodeBE {
-            table: [
-                65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,// 0-25 (A-Z)
-                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,// 26-51 (a-z)
-                48, 49, 50, 51, 52, 53, 54, 55, 56, 57,// 52-61
-                43,// 62
-                47// 63
             ]
         }
     }
@@ -90,8 +97,8 @@ pub fn base64_decode_elements<let InputElements: u32>(input: [u8; InputElements]
  *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
  *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
  **/
-pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; InputElements]) -> [u8; OutputBytes] {
-    let encoded: [u8; InputElements] = base64_encode_elements(input);
+pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; InputElements]) -> [u8; OutputBytes] {
+    let decoded: [u8; InputElements] = base64_decode_elements(input);
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
@@ -105,7 +112,7 @@ pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
         let mut slice: Field = 0;
         for j in 0..BASE64_ELEMENTS_PER_CHUNK {
             slice *= 64;
-            slice += encoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+            slice += decoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
         }
         let slice_bytes: [u8; 30] = slice.to_be_bytes();
         for j in 0..BYTES_PER_CHUNK {
@@ -118,7 +125,7 @@ pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
     let mut slice: Field = 0;
     for j in 0..base64_elements_in_final_chunk {
         slice *= 64;
-        slice += encoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+        slice += decoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
     }
     for _ in base64_elements_in_final_chunk..BASE64_ELEMENTS_PER_CHUNK {
         slice *= 64;
@@ -135,8 +142,7 @@ pub fn base64_encode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
 /**
  * @brief Take an array of packed base64 encoded bytes and convert into ASCII
  **/
-pub fn base64_decode<let InputBytes: u32, let OutputElements: u32>(input: [u8; InputBytes]) -> [u8; OutputElements] {
-    //  let decoded: [u8; InputBytes] = base64_decode_elements(input);
+pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; InputBytes]) -> [u8; OutputElements] {
     // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
     // we pack 40 base64 values into a field element and convert into 30 bytes
     // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
@@ -176,12 +182,11 @@ pub fn base64_decode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
     for i in 0..num_elements_in_final_chunk {
         result[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + i] = slice_base64_chunks[i];
     }
-    base64_decode_elements(result)
+    base64_encode_elements(result)
 }
 
-// ooook so we take ascii and encode as base64, we get an undefined character
 #[test]
-fn test_base64_decode_elements() {
+fn test_base64_encode_elements() {
     // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
     // Translated directly to ASCII (with the = padding character stripped)
     let ascii_expected: [u8; 43] = [
@@ -200,13 +205,13 @@ fn test_base64_decode_elements() {
         6, 49, 12, 37, 32, 48, 11, 34, 50, 41, 39, 21, 43, 4, 54, 2, 52, 18, 31, 56, 50, 51, 33, 28, 22, 19, 36, 0, 33, 18, 25, 57, 62, 22, 4, 17, 33, 10, 33, 23, 45, 37, 20
     ];
 
-    let ascii_result = base64_decode_elements(input);
+    let ascii_result = base64_encode_elements(input);
 
     assert(ascii_result == ascii_expected);
 }
 
 #[test]
-fn test_base64_encode() {
+fn test_base64_decode() {
     // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
     // Translated directly to ASCII
     let input: [u8; 44] = [
@@ -221,7 +226,7 @@ fn test_base64_encode() {
         116, 108, 85, 61
     ];
 
-    let result: [u8; 32] = base64_encode(input);
+    let result: [u8; 32] = base64_decode(input);
     let expected: [u8; 32] = [
         27, 19, 37, 131, 2, 226, 202, 153, 213, 172,
         77, 130, 209, 39, 248, 203, 56, 92, 89, 57,
@@ -232,7 +237,7 @@ fn test_base64_encode() {
 }
 
 #[test]
-fn test_base64_decode() {
+fn test_base64_encode() {
     // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU
     // Translated directly to ASCII (with padding byte character stripped)
     let expected: [u8; 43] = [
@@ -254,14 +259,14 @@ fn test_base64_decode() {
         182, 85
     ];
 
-    let result: [u8; 43] = base64_decode(input);
+    let result: [u8; 43] = base64_encode(input);
     assert(result == expected);
 }
 
 #[test]
-fn test_base64_decode_slash() {
+fn test_base64_encode_slash() {
     let input: [u8; 1] = [63]; // '/' in Base64
-    let result: [u8;1] = base64_decode_elements(input);
+    let result: [u8; 1] = base64_encode_elements(input);
 
     // Should map to '/' in ASCII, which is 47
     assert(result[0] == 47);
