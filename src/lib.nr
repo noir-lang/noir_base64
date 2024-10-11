@@ -108,34 +108,37 @@ pub fn base64_decode<let InputElements: u32, let OutputBytes: u32>(input: [u8; I
     let num_chunks = (InputElements / BASE64_ELEMENTS_PER_CHUNK)
         + (InputElements % BASE64_ELEMENTS_PER_CHUNK != 0) as u32;
 
-    for i in 0..num_chunks - 1 {
+    if num_chunks > 0 {
+        for i in 0..num_chunks - 1 {
+            let mut slice: Field = 0;
+            for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+                slice *= 64;
+                slice += decoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+            }
+            let slice_bytes: [u8; 30] = slice.to_be_bytes();
+            for j in 0..BYTES_PER_CHUNK {
+                result[i * BYTES_PER_CHUNK + j] = slice_bytes[j];
+            }
+        }
+
+        let base64_elements_in_final_chunk = InputElements - ((num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK);
+
         let mut slice: Field = 0;
-        for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+        for j in 0..base64_elements_in_final_chunk {
             slice *= 64;
-            slice += decoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+            slice += decoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
         }
+        for _ in base64_elements_in_final_chunk..BASE64_ELEMENTS_PER_CHUNK {
+            slice *= 64;
+        }
+        // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
         let slice_bytes: [u8; 30] = slice.to_be_bytes();
-        for j in 0..BYTES_PER_CHUNK {
-            result[i * BYTES_PER_CHUNK + j] = slice_bytes[j];
+        let num_bytes_in_final_chunk = OutputBytes - ((num_chunks - 1) * BYTES_PER_CHUNK);
+        for i in 0..num_bytes_in_final_chunk {
+            result[(num_chunks - 1) * BYTES_PER_CHUNK + i] = slice_bytes[i];
         }
     }
 
-    let base64_elements_in_final_chunk = InputElements - ((num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK);
-
-    let mut slice: Field = 0;
-    for j in 0..base64_elements_in_final_chunk {
-        slice *= 64;
-        slice += decoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
-    }
-    for _ in base64_elements_in_final_chunk..BASE64_ELEMENTS_PER_CHUNK {
-        slice *= 64;
-    }
-    // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
-    let slice_bytes: [u8; 30] = slice.to_be_bytes();
-    let num_bytes_in_final_chunk = OutputBytes - ((num_chunks - 1) * BYTES_PER_CHUNK);
-    for i in 0..num_bytes_in_final_chunk {
-        result[(num_chunks - 1) * BYTES_PER_CHUNK + i] = slice_bytes[i];
-    }
     result
 }
 
@@ -151,38 +154,42 @@ pub fn base64_encode<let InputBytes: u32, let OutputElements: u32>(input: [u8; I
     let BYTES_PER_CHUNK: u32 = 30;
     let num_chunks = (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
 
-    for i in 0..num_chunks - 1 {
+    if num_chunks > 0 {
+        for i in 0..num_chunks - 1 {
+            let mut slice: Field = 0;
+            for j in 0..BYTES_PER_CHUNK {
+                slice *= 256;
+                slice += input[i * BYTES_PER_CHUNK + j] as Field;
+            }
+
+            let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
+            for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+                result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
+            }
+        }
+
+        let bytes_in_final_chunk = InputBytes - ((num_chunks - 1) * BYTES_PER_CHUNK);
+
         let mut slice: Field = 0;
-        for j in 0..BYTES_PER_CHUNK {
+        for j in 0..bytes_in_final_chunk {
             slice *= 256;
-            slice += input[i * BYTES_PER_CHUNK + j] as Field;
+            slice += input[(num_chunks - 1) * BYTES_PER_CHUNK + j] as Field;
+        }
+        for _ in bytes_in_final_chunk..BYTES_PER_CHUNK {
+            slice *= 256;
         }
 
+        // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
         let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
-        for j in 0..BASE64_ELEMENTS_PER_CHUNK {
-            result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
+
+        let num_elements_in_final_chunk = OutputElements - ((num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK);
+        for i in 0..num_elements_in_final_chunk {
+            result[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + i] = slice_base64_chunks[i];
         }
+        result = base64_encode_elements(result);
     }
 
-    let bytes_in_final_chunk = InputBytes - ((num_chunks - 1) * BYTES_PER_CHUNK);
-
-    let mut slice: Field = 0;
-    for j in 0..bytes_in_final_chunk {
-        slice *= 256;
-        slice += input[(num_chunks - 1) * BYTES_PER_CHUNK + j] as Field;
-    }
-    for _ in bytes_in_final_chunk..BYTES_PER_CHUNK {
-        slice *= 256;
-    }
-
-    // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
-    let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
-
-    let num_elements_in_final_chunk = OutputElements - ((num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK);
-    for i in 0..num_elements_in_final_chunk {
-        result[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + i] = slice_base64_chunks[i];
-    }
-    base64_encode_elements(result)
+    result
 }
 
 #[test]
