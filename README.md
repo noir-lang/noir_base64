@@ -1,55 +1,39 @@
 # noir_base64
 
-A library to encode ASCII into Base64 and decode Base64 into ASCII
+A Base64 encoding/decoding library written in Noir which can encode arbitrary byte arrays into Base64 and decode Base64-encoded byte arrays (e.g. `"SGVsbG8gV29ybGQ=".as_bytes()`).
 
 # Usage
 
 ### `fn base64_encode`
-Takees an input byte array of ASCII characters and produces an output byte array of base64-encoded characters. The 6-bit base64 characters are packed into a concatenated byte array (e.g. 4 bytes of ASCII produce 3 bytes of encoded Base64)
+Takes an arbitrary byte array as input, unpacks it into Base64 values, then encodes each Base64 value into an ASCII character according to the [standard Base64 alphabet](https://datatracker.ietf.org/doc/html/rfc4648#section-4), to return a byte array representing the Base64 encoding. The encoded result is *not padded*, so padding must be handled separately.
 
 ### `fn base64_decode`
-Takes an input byte array of packed base64 characters and produces an output byte array of ASCII characters (e.g. 3 input bytes of base64 produces 4 output bytes of ASCII)
+Takes an ASCII byte array that encodes a Base64 string and decodes it into bytes. Input data is expected to be unpadded, so padding characters will cause decoding to fail.
 
 ### `fn base64_encode_elements`
-Takes an input byte array of ASCII characters and produces an output byte array of base64-encoded characters. Data is not packed i.e. each output array element maps to a 6-bit base64 character
+Takes an input byte array of ASCII characters and produces an output byte array of base64-encoded characters. Data is not packed i.e. each output array element maps to a 6-bit base64 character.
 
 ### `fn base64_decode_elements`
-Takes an input byte array of base64 characters and produces an output byte array of ASCII characters. Input data is not packed i.e. each input element maps to a 6-bit base64 character
+Takes an input byte array of base64 characters and produces an output byte array of ASCII characters. Input data is not packed i.e. each input element maps to a 6-bit base64 character. Input data is expected not to contain padding characters. Padding characters will cause decoding to fail.
 
 ### Example usage
 (see tests in `lib.nr` for more examples)
 
 ```
 use dep::noir_base64;
-fn encode() {
-    // Raw bh: GxMlgwLiypnVrE2C0Sf4yzhcWTkAhSZ5+WERhKhXtlU=
-    // Translated directly to ASCII
-    let input: [u8; 44] = [
-        71, 120, 77, 108, 103,
-        119, 76, 105, 121, 112,
-        110, 86, 114, 69, 50,
-        67, 48, 83, 102, 52,
-        121, 122, 104, 99, 87,
-        84, 107, 65, 104, 83,
-        90, 53, 43, 87, 69,
-        82, 104, 75, 104, 88,
-        116, 108, 85, 61
-    ];
+fn encode_and_decode() {
+    let input: str<88> = "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
+    let base64_encoded: str<118> = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg";
 
-    // will produce packed byte array of base64 chars:
-    /*
-    [
-        27, 19, 37, 131, 2, 226, 202, 153, 213, 172,
-        77, 130, 209, 39, 248, 203, 56, 92, 89, 57,
-        0, 133, 38, 121, 249, 97, 17, 132, 168, 87,
-        182, 85
-    ]
-    */
-    let result: [u8; 32] = noir_base64::base64_encode(input);
+    let encoded:[u8; 118] = noir_base64::base64_encode(input.as_bytes());
+    assert(encoded == base64_encoded.as_bytes());
+
+    let decoded: [u8; 88] = noir_base64::base64_decode(encoded);
+    assert(decoded == input.as_bytes());
 }
 ```
 
 # Costs
 
-`base64_encode_elements` will encode an array of 44 ASCII bytes in ~470 gates, plus a ~256 gate cost to initialize an encoding lookup table (the initialization cost is incurred once regardless of the number of decodings)
-
+- `base64_encode` will encode an array of 88 bytes in ~1182 gates, plus a ~64 gate cost to initialize the encoding lookup table (the initialization cost is incurred once regardless of the number of encodings).
+- `base64_decode` will decode an array of 118 bytes in ~2150 gates, plus a ~256 gate cost to initialize the decoding lookup table (the initialization cost is incurred once regardless of the number of decodings).
