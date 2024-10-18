@@ -264,6 +264,14 @@ fn test_encode_max_byte() {
     let result: [u8; 2] = STANDARD_NO_PAD.encode(input);
     let expected: [u8; 2] = [47, 119]; // "/w"
     assert(result == expected);
+
+    let result: [u8; 4] = URL_SAFE.encode(input);
+    let expected: [u8; 4] = [95, 119, 61, 61]; // "_w=="
+    assert(result == expected);
+
+    let result: [u8; 2] = URL_SAFE_NO_PAD.encode(input);
+    let expected: [u8; 2] = [95, 119]; // "_w"
+    assert(result == expected);
 }
 
 #[test]
@@ -277,6 +285,10 @@ fn test_encode_ascii() {
     let result = STANDARD.encode(input);
     assert(result == expected);
     let result = STANDARD_NO_PAD.encode(input);
+    assert(result == expected);
+    let result = URL_SAFE.encode(input);
+    assert(result == expected);
+    let result = URL_SAFE_NO_PAD.encode(input);
     assert(result == expected);
 }
 
@@ -297,6 +309,10 @@ fn test_encode_utf8() {
     let result = STANDARD.encode(input);
     assert(result == expected);
     let result = STANDARD_NO_PAD.encode(input);
+    assert(result == expected);
+    let result = URL_SAFE.encode(input);
+    assert(result == expected);
+    let result = URL_SAFE_NO_PAD.encode(input);
     assert(result == expected);
 }
 
@@ -390,6 +406,35 @@ fn test_encode_multi_chunks() {
         74, 106, 97, 71, 86, 107, 73, 71, 57, 117, 73, 71, 69, 103, 98, 109, 86, 104, 99, 109, 74,
         53, 73, 71, 57, 104, 97, 121, 66, 48, 99, 109, 86, 108, 76, 103,
     ];
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_standard() {
+    // test encoding to / and +
+    let input: [u8; 2] = [255, 224];
+    let expected: [u8; 4] = [47, 43, 65, 61];
+    let result: [u8; 4] = STANDARD.encode(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_url_safe() {
+    // test encoding to _ and -
+    let input: [u8; 2] = [255, 224];
+    let expected: [u8; 4] = [95, 45, 65, 61];
+    let result: [u8; 4] = URL_SAFE.encode(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_url_safe_no_pad() {
+    // test encoding to _ and -
+    let input: [u8; 2] = [255, 224];
+    let expected: [u8; 3] = [95, 45, 65];
+    let result: [u8; 3] = URL_SAFE_NO_PAD.encode(input);
     assert(result == expected);
 }
 
