@@ -2,7 +2,7 @@ mod encoder;
 pub use encoder::{STANDARD as BASE64_ENCODER_STANDARD, STANDARD_NO_PAD as BASE64_ENCODER_STANDARD_NO_PAD};
 
 mod decoder;
-pub use decoder::DECODER as BASE64_DECODER;
+pub use decoder::{STANDARD as BASE64_DECODER_STANDARD, STANDARD_NO_PAD as BASE64_DECODER_STANDARD_NO_PAD};
 
 pub(crate) mod defaults {
     pub(crate) global BASE64_PADDING_CHAR: u8 = 61;

@@ -1,14 +1,18 @@
-pub global DECODER = Base64DecodeBE::new();
+use super::defaults::BASE64_PADDING_CHAR;
+
+pub global STANDARD = Base64DecodeBE::new(true);
+pub global STANDARD_NO_PAD = Base64DecodeBE::new(false);
 
 global INVALID_VALUE: u8 = 255;
 struct Base64DecodeBE {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
-    table: [u8; 256]
+    table: [u8; 256],
+    pad: bool
 }
 impl Base64DecodeBE {
     /// Creates a new decoder that uses the standard Base64 Alphabet (base64) specified in RFC 4648
     /// https://datatracker.ietf.org/doc/html/rfc4648#section-4
-    fn new() -> Self {
+    fn new(pad: bool) -> Self {
         Base64DecodeBE {
             table: [
                 // 0-42
@@ -27,7 +31,8 @@ impl Base64DecodeBE {
                 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,// 97-122 (a-z)
                 // 123-255
                 INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE, INVALID_VALUE
-            ]
+            ],
+            pad
         }
     }
 
@@ -36,29 +41,16 @@ impl Base64DecodeBE {
     }
 
     /**
-    * @brief Take an array of base64 values and convert into ASCII values
-    **/
-    fn decode_elements<let InputElements: u32>(
-        self,
-        input: [u8; InputElements]
-    ) -> [u8; InputElements] {
-        let mut result: [u8; InputElements] = [0; InputElements];
-
-        for i in 0..InputElements {
-            let input_byte = input[i];
-            result[i] = self.get(input_byte as Field);
-            assert(result[i] != INVALID_VALUE, f"DecodeError: invalid symbol {input_byte}, offset {i}.");
-        }
-        result
-    }
-
-    /**
     * @brief Take an array of ASCII values and convert into *packed* byte array of base64 values
     *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
     *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
     **/
     pub fn decode<let InputElements: u32, let OutputBytes: u32>(self, input: [u8; InputElements]) -> [u8; OutputBytes] {
-        let decoded: [u8; InputElements] = self.decode_elements(input);
+        if self.pad {
+            // if the input length is not a multiple of 4, then it's not a valid base64 encoding
+            assert(InputElements % 4 == 0);
+        }
+
         // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
         // we pack 40 base64 values into a field element and convert into 30 bytes
         // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
@@ -69,11 +61,19 @@ impl Base64DecodeBE {
             + (InputElements % BASE64_ELEMENTS_PER_CHUNK != 0) as u32;
 
         if num_chunks > 0 {
-            for i in 0..num_chunks - 1 {
+            let final_chunk = num_chunks - 1;
+
+            for i in 0..final_chunk {
                 let mut slice: Field = 0;
                 for j in 0..BASE64_ELEMENTS_PER_CHUNK {
                     slice *= 64;
-                    slice += decoded[i * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+                    let offset = i * BASE64_ELEMENTS_PER_CHUNK + j;
+                    let input_byte = input[offset];
+                    let decoded = self.get(input_byte as Field);
+                    assert(
+                        decoded != INVALID_VALUE, f"DecodeError: invalid symbol {input_byte}, offset {offset}."
+                    );
+                    slice += decoded as Field;
                 }
                 let slice_bytes: [u8; 30] = slice.to_be_bytes();
                 for j in 0..BYTES_PER_CHUNK {
@@ -81,21 +81,44 @@ impl Base64DecodeBE {
                 }
             }
 
-            let base64_elements_in_final_chunk = InputElements - ((num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK);
+            // process the final chunk, which may contain padding
+            let base64_offset: u32 = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
+            let byte_offset = final_chunk * BYTES_PER_CHUNK;
+            let mut base64_elements_in_final_chunk = InputElements - base64_offset;
 
+            if self.pad {
+                // enforce Base64 padding is valid, then strip the padding
+                if (input[InputElements - 2] == BASE64_PADDING_CHAR) {
+                    // if a non-padding byte follows a padding byte, the base64 is invalid
+                    assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
+                    base64_elements_in_final_chunk -= 2;
+                } else if (input[InputElements - 1] == BASE64_PADDING_CHAR) {
+                    base64_elements_in_final_chunk -= 1;
+                }
+            }
+
+            // pack the base64 values into the field element
             let mut slice: Field = 0;
             for j in 0..base64_elements_in_final_chunk {
                 slice *= 64;
-                slice += decoded[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + j] as Field;
+                let offset = base64_offset + j;
+                let input_byte = input[offset];
+                let decoded = self.get(input_byte as Field);
+                assert(
+                    decoded != INVALID_VALUE, f"DecodeError: invalid symbol {input_byte}, offset {offset}."
+                );
+                slice += decoded as Field;
             }
             for _ in base64_elements_in_final_chunk..BASE64_ELEMENTS_PER_CHUNK {
                 slice *= 64;
             }
+
             // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
+            // extract the bytes from the Field element
             let slice_bytes: [u8; 30] = slice.to_be_bytes();
-            let num_bytes_in_final_chunk = OutputBytes - ((num_chunks - 1) * BYTES_PER_CHUNK);
+            let num_bytes_in_final_chunk = OutputBytes - byte_offset;
             for i in 0..num_bytes_in_final_chunk {
-                result[(num_chunks - 1) * BYTES_PER_CHUNK + i] = slice_bytes[i];
+                result[byte_offset + i] = slice_bytes[i];
             }
         }
 
