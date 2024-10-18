@@ -7,6 +7,7 @@ pub use encoder::{
 mod decoder;
 pub use decoder::{
     STANDARD as BASE64_DECODER_STANDARD, STANDARD_NO_PAD as BASE64_DECODER_STANDARD_NO_PAD,
+    URL_SAFE as BASE64_DECODER_URL_SAFE, URL_SAFE_NO_PAD as BASE64_DECODER_URL_SAFE_NO_PAD,
 };
 
 pub(crate) mod defaults {
