@@ -731,6 +731,14 @@ fn test_decode_max_byte() {
     let input: [u8; 2] = [47, 119]; // "/w"
     let result: [u8; 1] = STANDARD_NO_PAD.decode(input);
     assert(result == expected);
+
+    let input: [u8; 4] = [95, 119, 61, 61]; // "_w=="
+    let result: [u8; 1] = URL_SAFE.decode(input);
+    assert(result == expected);
+
+    let input: [u8; 2] = [95, 119]; // "_w"
+    let result: [u8; 1] = URL_SAFE_NO_PAD.decode(input);
+    assert(result == expected);
 }
 
 #[test(should_fail_with = "DecodeError: invalid symbol 255, offset 0")]
@@ -749,6 +757,59 @@ fn test_decode_standard_no_pad_fail_with_padding() {
 }
 
 #[test]
+fn test_decode_standard() {
+    // test decoding / and +
+    let input: [u8; 4] = [47, 43, 65, 61];
+    let expected: [u8; 2] = [255, 224];
+    let result: [u8; 2] = STANDARD.decode(input);
+
+    assert(result == expected);
+}
+
+#[test(should_fail_with = "DecodeError: invalid symbol 95, offset 0")]
+fn test_decode_underscore_with_standard() {
+    // test decoding _ and -
+    let input: [u8; 4] = [95, 45, 65, 61];
+    let _: [u8; 2] = STANDARD.decode(input);
+}
+
+#[test]
+fn test_decode_url_safe() {
+    // test decoding _ and -
+    let input: [u8; 4] = [95, 45, 65, 61];
+    let expected: [u8; 2] = [255, 224];
+    let result: [u8; 2] = URL_SAFE.decode(input);
+
+    assert(result == expected);
+}
+
+#[test(should_fail_with = "DecodeError: invalid symbol 47, offset 0")]
+fn test_decode_slash_with_url_safe() {
+    // test decoding / and +
+    let input: [u8; 4] = [47, 43, 65, 61];
+    let _: [u8; 2] = URL_SAFE.decode(input);
+}
+
+#[test]
+fn test_decode_url_safe_no_pad() {
+    // test decoding _ and -
+    let input: [u8; 3] = [95, 45, 65];
+    let expected: [u8; 2] = [255, 224];
+    let result: [u8; 2] = URL_SAFE_NO_PAD.decode(input);
+
+    assert(result == expected);
+}
+
+#[test(should_fail_with = "DecodeError: invalid input length for specified output length. Expected 3 input elements, but got 4.")]
+fn test_decode_url_safe_no_pad_fail_with_padding() {
+    // test decoding _ and -
+    let input: [u8; 4] = [95, 45, 65, 61];
+    let expected: [u8; 2] = [255, 224];
+    let result: [u8; 2] = URL_SAFE_NO_PAD.decode(input);
+    assert(result == expected);
+}
+
+#[test]
 fn test_decode_ascii() {
     // base64: SGVsbG8gV29ybGQh
     let input: [u8; 16] = [83, 71, 86, 115, 98, 71, 56, 103, 86, 50, 57, 121, 98, 71, 81, 104];
@@ -759,6 +820,10 @@ fn test_decode_ascii() {
     let result: [u8; 12] = STANDARD.decode(input);
     assert(result == expected);
     let result: [u8; 12] = STANDARD_NO_PAD.decode(input);
+    assert(result == expected);
+    let result: [u8; 12] = URL_SAFE.decode(input);
+    assert(result == expected);
+    let result: [u8; 12] = URL_SAFE_NO_PAD.decode(input);
     assert(result == expected);
 }
 
@@ -779,6 +844,10 @@ fn test_decode_utf8() {
     let result: [u8; 27] = STANDARD.decode(input);
     assert(result == expected);
     let result: [u8; 27] = STANDARD_NO_PAD.decode(input);
+    assert(result == expected);
+    let result: [u8; 27] = URL_SAFE.decode(input);
+    assert(result == expected);
+    let result: [u8; 27] = URL_SAFE_NO_PAD.decode(input);
     assert(result == expected);
 }
 
