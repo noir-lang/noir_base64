@@ -16,6 +16,6 @@ fn encode_and_decode_no_pad() {
     let encoded:[u8; 118] = BASE64_ENCODER_STANDARD_NO_PAD.encode(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
-    let decoded: [u8; 88] = BASE64_DECODER.decode(encoded);
+    let decoded: [u8; 88] = BASE64_DECODER_STANDARD_NO_PAD.decode(encoded);
     assert(decoded == input.as_bytes());
 }
