@@ -1,14 +1,18 @@
-pub global ENCODER = Base64EncodeBE::new();
+use super::defaults::BASE64_PADDING_CHAR;
+
+pub global STANDARD = Base64EncodeBE::new(true);
+pub global STANDARD_NO_PAD = Base64EncodeBE::new(false);
 
 struct Base64EncodeBE {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
-    table: [u8; 64]
+    table: [u8; 64],
+    pad: bool
 }
 
 impl Base64EncodeBE {
     /// Creates a new encoder that uses the standard Base64 Alphabet (base64) specified in RFC 4648 
     /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
-    fn new() -> Self {
+    fn new(pad: bool) -> Self {
         Base64EncodeBE {
             // The alphabet values here are standard UTF-8 (and ASCII) byte encodings, so the index
             // in the table is the 6-bit Base64 value, and the value at that index is the UTF-8 
@@ -19,7 +23,8 @@ impl Base64EncodeBE {
                 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,// 0-9
                 43,// +
                 47// /
-            ]
+            ],
+            pad
         }
     }
 
@@ -30,10 +35,7 @@ impl Base64EncodeBE {
     /**
     * @brief Take an array of ASCII values and convert into base64 values
     **/
-    fn encode_elements<let InputElements: u32>(
-        self,
-        input: [u8; InputElements]
-    ) -> [u8; InputElements] {
+    fn encode_elements<let InputElements: u32>(self, input: [u8; InputElements]) -> [u8; InputElements] {
         let mut result: [u8; InputElements] = [0; InputElements];
 
         for i in 0..InputElements {
@@ -55,21 +57,30 @@ impl Base64EncodeBE {
         let num_chunks = (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
 
         if num_chunks > 0 {
-            for i in 0..num_chunks - 1 {
+            let final_chunk = num_chunks - 1;
+
+            for i in 0..final_chunk {
+                // pack the bytes into the field element
                 let mut slice: Field = 0;
                 for j in 0..BYTES_PER_CHUNK {
                     slice *= 256;
                     slice += input[i * BYTES_PER_CHUNK + j] as Field;
                 }
 
+                // extract the 6-bit values from the Field element
                 let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
                 for j in 0..BASE64_ELEMENTS_PER_CHUNK {
                     result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
                 }
             }
 
-            let bytes_in_final_chunk = InputBytes - ((num_chunks - 1) * BYTES_PER_CHUNK);
+            // process the final chunk, which may require padding
+            let byte_offset = final_chunk * BYTES_PER_CHUNK;
+            let base64_offset = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
+            let bytes_in_final_chunk = InputBytes - byte_offset;
+            let num_elements_in_final_chunk = OutputElements - base64_offset;
 
+            // pack the bytes into the field element
             let mut slice: Field = 0;
             for j in 0..bytes_in_final_chunk {
                 slice *= 256;
@@ -80,13 +91,24 @@ impl Base64EncodeBE {
             }
 
             // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
+            // extract the 6-bit values from the Field element
             let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
-
-            let num_elements_in_final_chunk = OutputElements - ((num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK);
             for i in 0..num_elements_in_final_chunk {
-                result[(num_chunks - 1) * BASE64_ELEMENTS_PER_CHUNK + i] = slice_base64_chunks[i];
+                result[base64_offset + i] = slice_base64_chunks[i];
             }
+
             result = self.encode_elements(result);
+
+            if self.pad {
+                // handle padding
+                let rem = InputBytes % 3;
+                if (rem == 1) {
+                    result[base64_offset + num_elements_in_final_chunk - 1] = BASE64_PADDING_CHAR;
+                    result[base64_offset + num_elements_in_final_chunk - 2] = BASE64_PADDING_CHAR;
+                } else if (rem == 2) {
+                    result[base64_offset + num_elements_in_final_chunk - 1] = BASE64_PADDING_CHAR;
+                }
+            }
         }
 
         result
