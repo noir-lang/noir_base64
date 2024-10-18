@@ -263,7 +263,7 @@ fn test_decode_max_byte() {
     assert(result == expected);
 }
 
-#[test(should_fail_with="DecodeError: invalid symbol 255, offset 0")]
+#[test(should_fail_with = "DecodeError: invalid symbol 255, offset 0")]
 fn test_decode_invalid() {
     let input: [u8; 1] = [255];
     let _: [u8; 0] = base64_decode(input);
