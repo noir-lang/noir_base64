@@ -2,6 +2,8 @@ use super::defaults::BASE64_PADDING_CHAR;
 
 pub global STANDARD = Base64EncodeBE::new(true);
 pub global STANDARD_NO_PAD = Base64EncodeBE::new(false);
+pub global URL_SAFE = Base64EncodeBE::base64url(true);
+pub global URL_SAFE_NO_PAD = Base64EncodeBE::base64url(false);
 
 struct Base64EncodeBE {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
@@ -25,6 +27,24 @@ impl Base64EncodeBE {
                 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, // 0-9
                 43, // +
                 47, // /
+            ],
+            pad,
+        }
+    }
+
+    // Creates a new encoder that uses the URL and Filename Safe Alphabet specified in RFC 4648
+    // https://datatracker.ietf.org/doc/html/rfc4648#section-5
+    fn base64url(pad: bool) -> Self {
+        Base64EncodeBE {
+            table: [
+                65, 66, 67, 68, 69, 70, 71, 72, // A, B, C, D, E, F, G, H
+                73, 74, 75, 76, 77, 78, 79, 80, // I, J, K, L, M, N, O, P
+                81, 82, 83, 84, 85, 86, 87, 88, // Q, R, S, T, U, V, W, X
+                89, 90, 97, 98, 99, 100, 101, 102, // Y, Z, a, b, c, d, e, f
+                103, 104, 105, 106, 107, 108, 109, 110, // g, h, i, j, k, l, m, n
+                111, 112, 113, 114, 115, 116, 117, 118, // o, p, q, r, s, t, u, v
+                119, 120, 121, 122, 48, 49, 50, 51, // w, x, y, z, 0, 1, 2, 3
+                52, 53, 54, 55, 56, 57, 45, 95, // 4, 5, 6, 7, 8, 9, -, _
             ],
             pad,
         }
