@@ -55,5 +55,27 @@ fn encode_and_decode() {
 
 ## Costs
 
-- `encode` will encode an array of 88 bytes in ~1182 gates, plus a ~64 gate cost to initialize the encoding lookup table (the initialization cost is incurred once regardless of the number of encodings).
-- `decode` will decode an array of 118 bytes in ~2150 gates, plus a ~256 gate cost to initialize the decoding lookup table (the initialization cost is incurred once regardless of the number of decodings).
+All of the benchmarks below are for the [Barretenberg proving backend](https://github.com/AztecProtocol/aztec-packages/tree/master/barretenberg). 
+
+After the initial setup cost it is often cheaper to decode than to encode, as shown by the numbers below where the encode/decode were run over the same pairs of unencoded and base64-encoded text.
+
+| UTF-8 Length | Base64 Length | # times | # Gates to Encode | # Gates to Decode |
+| ------------ | ------------- | ------- | ----------------- | ----------------- |
+| 12           | 16            | 1       | 2946              | 1065              |
+| 12           | 16            | 2       | 3057              | 1114              |
+| 12           | 16            | 3       | 3166              | 1163              |
+| 610          | 816           | 1       | 7349              | 8062              |
+| 610          | 816           | 2       | 10993             | 9181              |
+| 610          | 816           | 3       | 14597             | 10239             |
+
+### `encode`
+Costs are equivalent for all encoder configurations. 
+
+- encoding an array of 12 bytes into 16 base64 characters requires ~110 gates plus an initial setup cost of ~2836 gates. (Gate counts for encoding the same array 1, 2, and 3 were 2946, 3057, 3166 respectively.)
+- encoding an array of 610 input bytes requires ~3625 gates plus an initial setup cost of ~3700 gates. (Gate counts for encoding the same array 1, 2, 3, 4 times were 7349, 10993, 14597, and 18200 respectively.)
+
+### `decode`
+Decoding padded inputs costs 1-2 gates more than decoding unpadded inputs. Since the difference is marginal, the numbers below are only for the padded case.
+
+- decoding an array of 16 base64 characters bytes into 12 bytes requires ~49 gates plus an initial setup cost of ~1016 gates. (Gate counts for encoding the same array 1, 2, and 3 times were 1065, 1114, and 1163 respectively.)
+- decoding an array of 816 base64 characters (including padding) into 610 input bytes requires ~1060 gates plus an initial setup cost of ~7000 gates. (Gate counts for decoding the same array 1, 2, 3, 4 times were 8062, 9181, 10239, and 11298 respectively.)
