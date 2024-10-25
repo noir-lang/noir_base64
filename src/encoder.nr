@@ -59,16 +59,30 @@ impl Base64EncodeBE {
         // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
         // we pack 40 base64 values into a field element and convert into 30 bytes
         // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
+        // Calculate the number of padding characters and the length of the output without padding
+        let rem = InputBytes % 3;
+        let num_padding_chars = if rem == 1 {
+            2
+        } else if rem == 2 {
+            1
+        } else {
+            0
+        };
+        let non_padded_output_length = OutputElements - num_padding_chars;
+
+        // Assert that the output length is correct
+        if self.pad {
+            assert((InputBytes + 2) / 3 * 4 == OutputElements);
+        } else {
+            assert(((InputBytes + 3) / 3 * 4) - num_padding_chars == OutputElements);
+        }
+
         let mut result: [u8; OutputElements] = [0; OutputElements];
 
         let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
         let BYTES_PER_CHUNK: u32 = 30;
         let num_chunks =
             (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
-
-        let rem = InputBytes % 3;
-        let num_padding_chars = if rem == 1 { 2 } else if rem == 2 { 1 } else { 0 };
-        let non_padded_output_length = OutputElements - num_padding_chars;
 
         if num_chunks > 0 {
             let final_chunk = num_chunks - 1;
@@ -108,7 +122,8 @@ impl Base64EncodeBE {
             // extract the 6-bit values from the Field element
             let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
             for i in 0..num_elements_in_final_chunk {
-                if (base64_offset + i < non_padded_output_length) {
+                // If padding is enabled, we can skip setting the last `non_padded_output_length` chars
+                if (!self.pad | base64_offset + i < non_padded_output_length) {
                     result[base64_offset + i] = slice_base64_chunks[i];
                 }
             }
