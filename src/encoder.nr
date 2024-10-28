@@ -74,7 +74,10 @@ impl Base64EncodeBE {
         if self.pad {
             assert((InputBytes + 2) / 3 * 4 == OutputElements, "invalid output length");
         } else {
-            assert(((InputBytes + 2) / 3 * 4) - num_padding_chars == OutputElements, "invalid output length");
+            assert(
+                ((InputBytes + 2) / 3 * 4) - num_padding_chars == OutputElements,
+                "invalid output length",
+            );
         }
 
         let mut result: [u8; OutputElements] = [0; OutputElements];
