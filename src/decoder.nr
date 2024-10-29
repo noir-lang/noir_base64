@@ -291,9 +291,37 @@ impl Base64DecodeBE {
         self,
         input: [u8; InputElements],
     ) -> [u8; OutputBytes] {
+        let rem = OutputBytes % 3;
+        // Calculate the number of padding characters and the length of the input without padding
+        let num_padding_chars = if rem == 1 {
+            2
+        } else if rem == 2 {
+            1
+        } else {
+            0
+        };
+
+        // Assert that the output length & input length are correct
+        // Every 3 output chars will be encoded as 4 base64 input chars
+        let encoded_length = (OutputBytes + 2) / 3 * 4; // ceil(input * 4 / 3)
         if self.pad {
-            // if the input length is not a multiple of 4, then it's not a valid base64 encoding
-            assert(InputElements % 4 == 0);
+            assert(
+                encoded_length == InputElements,
+                f"DecodeError: invalid input length for specified output length. Expected {encoded_length} input elements, but got {InputElements}.",
+            );
+            // enforce Base64 padding is valid
+            if num_padding_chars == 2 {
+                assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
+                assert(input[InputElements - 2] == BASE64_PADDING_CHAR);
+            } else if num_padding_chars == 1 {
+                assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
+            }
+        } else {
+            let expected = encoded_length - num_padding_chars;
+            assert(
+                encoded_length - num_padding_chars == InputElements,
+                f"DecodeError: invalid input length for specified output length. Expected {expected} input elements, but got {InputElements}.",
+            );
         }
 
         // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
@@ -330,18 +358,11 @@ impl Base64DecodeBE {
             // process the final chunk, which may contain padding
             let base64_offset: u32 = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
             let byte_offset = final_chunk * BYTES_PER_CHUNK;
-            let mut base64_elements_in_final_chunk = InputElements - base64_offset;
-
-            if self.pad {
-                // enforce Base64 padding is valid, then strip the padding
-                if (input[InputElements - 2] == BASE64_PADDING_CHAR) {
-                    // if a non-padding byte follows a padding byte, the base64 is invalid
-                    assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
-                    base64_elements_in_final_chunk -= 2;
-                } else if (input[InputElements - 1] == BASE64_PADDING_CHAR) {
-                    base64_elements_in_final_chunk -= 1;
-                }
-            }
+            let base64_elements_in_final_chunk = if self.pad {
+                InputElements - base64_offset - num_padding_chars
+            } else {
+                InputElements - base64_offset
+            };
 
             // pack the base64 values into the field element
             let mut slice: Field = 0;
@@ -444,11 +465,11 @@ fn test_decode_max_byte() {
 
 #[test(should_fail_with = "DecodeError: invalid symbol 255, offset 0")]
 fn test_decode_invalid() {
-    let input: [u8; 1] = [255];
-    let _: [u8; 0] = STANDARD_NO_PAD.decode(input);
+    let input: [u8; 2] = [255, 255];
+    let _: [u8; 1] = STANDARD_NO_PAD.decode(input);
 }
 
-#[test(should_fail_with = "DecodeError: invalid symbol 61, offset 3")]
+#[test(should_fail_with = "DecodeError: invalid input length for specified output length. Expected 3 input elements, but got 4.")]
 fn test_decode_standard_no_pad_fail_with_padding() {
     // test decoding / and +
     let input: [u8; 4] = [47, 43, 65, 61];
