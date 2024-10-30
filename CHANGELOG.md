@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/noir-lang/noir_base64/compare/v0.2.3...v0.3.0) (2024-10-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* add padding support & make it optional ([#21](https://github.com/noir-lang/noir_base64/issues/21))
+
+### Features
+
+* Add padding support & make it optional ([#21](https://github.com/noir-lang/noir_base64/issues/21)) ([d9bd959](https://github.com/noir-lang/noir_base64/commit/d9bd959bf9e01074515f48c8fa2c0fbdfb36120d))
+* Add support for base64url alphabet ([#24](https://github.com/noir-lang/noir_base64/issues/24)) ([dfed9dd](https://github.com/noir-lang/noir_base64/commit/dfed9dd81c2f91947f235cf2d674e26449cfcadd))
+
+
+### Bug Fixes
+
+* Formatting error in test with nightly compiler ([#18](https://github.com/noir-lang/noir_base64/issues/18)) ([4bc4c4b](https://github.com/noir-lang/noir_base64/commit/4bc4c4ba40e786d1795ae809893c3700cfca4dc4))
+
 ## [0.2.3](https://github.com/noir-lang/noir_base64/compare/v0.2.2...v0.2.3) (2024-10-17)
 
 
