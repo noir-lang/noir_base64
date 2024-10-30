@@ -2,6 +2,8 @@ use super::defaults::BASE64_PADDING_CHAR;
 
 pub global STANDARD = Base64EncodeBE::new(true);
 pub global STANDARD_NO_PAD = Base64EncodeBE::new(false);
+pub global URL_SAFE = Base64EncodeBE::base64url(false);
+pub global URL_SAFE_WITH_PAD = Base64EncodeBE::base64url(true);
 
 struct Base64EncodeBE {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
@@ -25,6 +27,24 @@ impl Base64EncodeBE {
                 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, // 0-9
                 43, // +
                 47, // /
+            ],
+            pad,
+        }
+    }
+
+    // Creates a new encoder that uses the URL and Filename Safe Alphabet specified in RFC 4648
+    // https://datatracker.ietf.org/doc/html/rfc4648#section-5
+    fn base64url(pad: bool) -> Self {
+        Base64EncodeBE {
+            table: [
+                65, 66, 67, 68, 69, 70, 71, 72, // A, B, C, D, E, F, G, H
+                73, 74, 75, 76, 77, 78, 79, 80, // I, J, K, L, M, N, O, P
+                81, 82, 83, 84, 85, 86, 87, 88, // Q, R, S, T, U, V, W, X
+                89, 90, 97, 98, 99, 100, 101, 102, // Y, Z, a, b, c, d, e, f
+                103, 104, 105, 106, 107, 108, 109, 110, // g, h, i, j, k, l, m, n
+                111, 112, 113, 114, 115, 116, 117, 118, // o, p, q, r, s, t, u, v
+                119, 120, 121, 122, 48, 49, 50, 51, // w, x, y, z, 0, 1, 2, 3
+                52, 53, 54, 55, 56, 57, 45, 95, // 4, 5, 6, 7, 8, 9, -, _
             ],
             pad,
         }
@@ -74,9 +94,15 @@ impl Base64EncodeBE {
         // Every 3 chars will be encoded as 4 base64 chars
         let encoded_length = (InputBytes + 2) / 3 * 4; // ceil(input * 4 / 3)
         if self.pad {
-            assert(encoded_length == OutputElements, "invalid output length");
+            assert(
+                encoded_length == OutputElements,
+                f"EncodeError: invalid output length. Expected {encoded_length} output elements, but got {OutputElements}.",
+            );
         } else {
-            assert(encoded_length - num_padding_chars == OutputElements, "invalid output length");
+            assert(
+                encoded_length - num_padding_chars == OutputElements,
+                f"EncodeError: invalid output length. Expected {encoded_length} output elements, but got {OutputElements}.",
+            );
         }
 
         let mut result: [u8; OutputElements] = [0; OutputElements];
@@ -238,6 +264,14 @@ fn test_encode_max_byte() {
     let result: [u8; 2] = STANDARD_NO_PAD.encode(input);
     let expected: [u8; 2] = [47, 119]; // "/w"
     assert(result == expected);
+
+    let result: [u8; 4] = URL_SAFE_WITH_PAD.encode(input);
+    let expected: [u8; 4] = [95, 119, 61, 61]; // "_w=="
+    assert(result == expected);
+
+    let result: [u8; 2] = URL_SAFE.encode(input);
+    let expected: [u8; 2] = [95, 119]; // "_w"
+    assert(result == expected);
 }
 
 #[test]
@@ -251,6 +285,10 @@ fn test_encode_ascii() {
     let result = STANDARD.encode(input);
     assert(result == expected);
     let result = STANDARD_NO_PAD.encode(input);
+    assert(result == expected);
+    let result = URL_SAFE_WITH_PAD.encode(input);
+    assert(result == expected);
+    let result = URL_SAFE.encode(input);
     assert(result == expected);
 }
 
@@ -271,6 +309,10 @@ fn test_encode_utf8() {
     let result = STANDARD.encode(input);
     assert(result == expected);
     let result = STANDARD_NO_PAD.encode(input);
+    assert(result == expected);
+    let result = URL_SAFE_WITH_PAD.encode(input);
+    assert(result == expected);
+    let result = URL_SAFE.encode(input);
     assert(result == expected);
 }
 
@@ -364,6 +406,35 @@ fn test_encode_multi_chunks() {
         74, 106, 97, 71, 86, 107, 73, 71, 57, 117, 73, 71, 69, 103, 98, 109, 86, 104, 99, 109, 74,
         53, 73, 71, 57, 104, 97, 121, 66, 48, 99, 109, 86, 108, 76, 103,
     ];
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_standard() {
+    // test encoding to / and +
+    let input: [u8; 2] = [255, 224];
+    let expected: [u8; 4] = [47, 43, 65, 61];
+    let result: [u8; 4] = STANDARD.encode(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_url_safe_with_pad() {
+    // test encoding to _ and -
+    let input: [u8; 2] = [255, 224];
+    let expected: [u8; 4] = [95, 45, 65, 61];
+    let result: [u8; 4] = URL_SAFE_WITH_PAD.encode(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_url_safe() {
+    // test encoding to _ and -
+    let input: [u8; 2] = [255, 224];
+    let expected: [u8; 3] = [95, 45, 65];
+    let result: [u8; 3] = URL_SAFE.encode(input);
     assert(result == expected);
 }
 

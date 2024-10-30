@@ -2,6 +2,8 @@ use super::defaults::BASE64_PADDING_CHAR;
 
 pub global STANDARD = Base64DecodeBE::new(true);
 pub global STANDARD_NO_PAD = Base64DecodeBE::new(false);
+pub global URL_SAFE = Base64DecodeBE::base64url(false);
+pub global URL_SAFE_WITH_PAD = Base64DecodeBE::base64url(true);
 
 global INVALID_VALUE: u8 = 255;
 struct Base64DecodeBE {
@@ -278,6 +280,274 @@ impl Base64DecodeBE {
         }
     }
 
+    // Creates a new decoder that uses the URL and Filename Safe Alphabet specified in RFC 4648
+    // https://datatracker.ietf.org/doc/html/rfc4648#section-5
+    fn base64url(pad: bool) -> Self {
+        Base64DecodeBE {
+            table: [
+                // 0-44 (no mapping)
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                62, // 45 (-)
+                INVALID_VALUE,
+                INVALID_VALUE, // 46-47 (no mapping)
+                52,
+                53,
+                54,
+                55,
+                56,
+                57,
+                58,
+                59,
+                60,
+                61, // 48-57 (0-9)
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE, // 58-64 (no mapping)
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25, // 65-90 (A-Z)
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE, // 91-94 (no mapping)
+                63, // 95 (_)
+                INVALID_VALUE, // 96 (no mapping)
+                26,
+                27,
+                28,
+                29,
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39,
+                40,
+                41,
+                42,
+                43,
+                44,
+                45,
+                46,
+                47,
+                48,
+                49,
+                50,
+                51, // 97-122 (a-z)
+                // 123-255
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+                INVALID_VALUE,
+            ],
+            pad,
+        }
+    }
+
     fn get(self, idx: Field) -> u8 {
         self.table[idx]
     }
@@ -291,9 +561,37 @@ impl Base64DecodeBE {
         self,
         input: [u8; InputElements],
     ) -> [u8; OutputBytes] {
+        let rem = OutputBytes % 3;
+        // Calculate the number of padding characters and the length of the input without padding
+        let num_padding_chars = if rem == 1 {
+            2
+        } else if rem == 2 {
+            1
+        } else {
+            0
+        };
+
+        // Assert that the output length & input length are correct
+        // Every 3 output chars will be encoded as 4 base64 input chars
+        let encoded_length = (OutputBytes + 2) / 3 * 4; // ceil(input * 4 / 3)
         if self.pad {
-            // if the input length is not a multiple of 4, then it's not a valid base64 encoding
-            assert(InputElements % 4 == 0);
+            assert(
+                encoded_length == InputElements,
+                f"DecodeError: invalid input length for specified output length. Expected {encoded_length} input elements, but got {InputElements}.",
+            );
+            // enforce Base64 padding is valid
+            if num_padding_chars == 2 {
+                assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
+                assert(input[InputElements - 2] == BASE64_PADDING_CHAR);
+            } else if num_padding_chars == 1 {
+                assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
+            }
+        } else {
+            let expected = encoded_length - num_padding_chars;
+            assert(
+                encoded_length - num_padding_chars == InputElements,
+                f"DecodeError: invalid input length for specified output length. Expected {expected} input elements, but got {InputElements}.",
+            );
         }
 
         // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
@@ -330,18 +628,11 @@ impl Base64DecodeBE {
             // process the final chunk, which may contain padding
             let base64_offset: u32 = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
             let byte_offset = final_chunk * BYTES_PER_CHUNK;
-            let mut base64_elements_in_final_chunk = InputElements - base64_offset;
-
-            if self.pad {
-                // enforce Base64 padding is valid, then strip the padding
-                if (input[InputElements - 2] == BASE64_PADDING_CHAR) {
-                    // if a non-padding byte follows a padding byte, the base64 is invalid
-                    assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
-                    base64_elements_in_final_chunk -= 2;
-                } else if (input[InputElements - 1] == BASE64_PADDING_CHAR) {
-                    base64_elements_in_final_chunk -= 1;
-                }
-            }
+            let base64_elements_in_final_chunk = if self.pad {
+                InputElements - base64_offset - num_padding_chars
+            } else {
+                InputElements - base64_offset
+            };
 
             // pack the base64 values into the field element
             let mut slice: Field = 0;
@@ -440,20 +731,81 @@ fn test_decode_max_byte() {
     let input: [u8; 2] = [47, 119]; // "/w"
     let result: [u8; 1] = STANDARD_NO_PAD.decode(input);
     assert(result == expected);
+
+    let input: [u8; 4] = [95, 119, 61, 61]; // "_w=="
+    let result: [u8; 1] = URL_SAFE_WITH_PAD.decode(input);
+    assert(result == expected);
+
+    let input: [u8; 2] = [95, 119]; // "_w"
+    let result: [u8; 1] = URL_SAFE.decode(input);
+    assert(result == expected);
 }
 
 #[test(should_fail_with = "DecodeError: invalid symbol 255, offset 0")]
 fn test_decode_invalid() {
-    let input: [u8; 1] = [255];
-    let _: [u8; 0] = STANDARD_NO_PAD.decode(input);
+    let input: [u8; 2] = [255, 255];
+    let _: [u8; 1] = STANDARD_NO_PAD.decode(input);
 }
 
-#[test(should_fail_with = "DecodeError: invalid symbol 61, offset 3")]
+#[test(should_fail_with = "DecodeError: invalid input length for specified output length. Expected 3 input elements, but got 4.")]
 fn test_decode_standard_no_pad_fail_with_padding() {
     // test decoding / and +
     let input: [u8; 4] = [47, 43, 65, 61];
     let expected: [u8; 2] = [255, 224];
     let result: [u8; 2] = STANDARD_NO_PAD.decode(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_decode_standard() {
+    // test decoding / and +
+    let input: [u8; 4] = [47, 43, 65, 61];
+    let expected: [u8; 2] = [255, 224];
+    let result: [u8; 2] = STANDARD.decode(input);
+
+    assert(result == expected);
+}
+
+#[test(should_fail_with = "DecodeError: invalid symbol 95, offset 0")]
+fn test_decode_underscore_with_standard() {
+    // test decoding _ and -
+    let input: [u8; 4] = [95, 45, 65, 61];
+    let _: [u8; 2] = STANDARD.decode(input);
+}
+
+#[test]
+fn test_decode_url_safe_with_pad() {
+    // test decoding _ and -
+    let input: [u8; 4] = [95, 45, 65, 61];
+    let expected: [u8; 2] = [255, 224];
+    let result: [u8; 2] = URL_SAFE_WITH_PAD.decode(input);
+
+    assert(result == expected);
+}
+
+#[test(should_fail_with = "DecodeError: invalid symbol 47, offset 0")]
+fn test_decode_slash_with_url_safe() {
+    // test decoding / and +
+    let input: [u8; 3] = [47, 43, 65];
+    let _: [u8; 2] = URL_SAFE.decode(input);
+}
+
+#[test]
+fn test_decode_url_safe() {
+    // test decoding _ and -
+    let input: [u8; 3] = [95, 45, 65];
+    let expected: [u8; 2] = [255, 224];
+    let result: [u8; 2] = URL_SAFE.decode(input);
+
+    assert(result == expected);
+}
+
+#[test(should_fail_with = "DecodeError: invalid input length for specified output length. Expected 3 input elements, but got 4.")]
+fn test_decode_url_safe_no_pad_fail_with_padding() {
+    // test decoding _ and -
+    let input: [u8; 4] = [95, 45, 65, 61];
+    let expected: [u8; 2] = [255, 224];
+    let result: [u8; 2] = URL_SAFE.decode(input);
     assert(result == expected);
 }
 
@@ -468,6 +820,10 @@ fn test_decode_ascii() {
     let result: [u8; 12] = STANDARD.decode(input);
     assert(result == expected);
     let result: [u8; 12] = STANDARD_NO_PAD.decode(input);
+    assert(result == expected);
+    let result: [u8; 12] = URL_SAFE_WITH_PAD.decode(input);
+    assert(result == expected);
+    let result: [u8; 12] = URL_SAFE.decode(input);
     assert(result == expected);
 }
 
@@ -488,6 +844,10 @@ fn test_decode_utf8() {
     let result: [u8; 27] = STANDARD.decode(input);
     assert(result == expected);
     let result: [u8; 27] = STANDARD_NO_PAD.decode(input);
+    assert(result == expected);
+    let result: [u8; 27] = URL_SAFE_WITH_PAD.decode(input);
+    assert(result == expected);
+    let result: [u8; 27] = URL_SAFE.decode(input);
     assert(result == expected);
 }
 
