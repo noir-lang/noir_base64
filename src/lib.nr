@@ -17,14 +17,14 @@
 //    output string.
 mod encoder;
 pub use encoder::{
-    STANDARD as BASE64_ENCODER_STANDARD, STANDARD_NO_PAD as BASE64_ENCODER_STANDARD_NO_PAD,
-    URL_SAFE as BASE64_ENCODER_URL_SAFE, URL_SAFE_NO_PAD as BASE64_ENCODER_URL_SAFE_NO_PAD,
+    STANDARD as BASE64_ENCODER, STANDARD_NO_PAD as BASE64_NO_PAD_ENCODER,
+    URL_SAFE as BASE64_URL_ENCODER, URL_SAFE_WITH_PAD as BASE64_URL_WITH_PAD_ENCODER,
 };
 
 mod decoder;
 pub use decoder::{
-    STANDARD as BASE64_DECODER_STANDARD, STANDARD_NO_PAD as BASE64_DECODER_STANDARD_NO_PAD,
-    URL_SAFE as BASE64_DECODER_URL_SAFE, URL_SAFE_NO_PAD as BASE64_DECODER_URL_SAFE_NO_PAD,
+    STANDARD as BASE64_DECODER, STANDARD_NO_PAD as BASE64_NO_PAD_DECODER,
+    URL_SAFE as BASE64_URL_DECODER, URL_SAFE_WITH_PAD as BASE64_URL_WITH_PAD_DECODER,
 };
 
 pub(crate) mod defaults {
@@ -37,10 +37,10 @@ fn encode_and_decode() {
         "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
     let base64_encoded = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg==";
 
-    let encoded: [u8; 120] = BASE64_ENCODER_STANDARD.encode(input.as_bytes());
+    let encoded: [u8; 120] = BASE64_ENCODER.encode(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
-    let decoded: [u8; 88] = BASE64_DECODER_STANDARD.decode(encoded);
+    let decoded: [u8; 88] = BASE64_DECODER.decode(encoded);
     assert(decoded == input.as_bytes());
 }
 
@@ -50,9 +50,9 @@ fn encode_and_decode_no_pad() {
         "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
     let base64_encoded: str<118> = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg";
 
-    let encoded: [u8; 118] = BASE64_ENCODER_STANDARD_NO_PAD.encode(input.as_bytes());
+    let encoded: [u8; 118] = BASE64_NO_PAD_ENCODER.encode(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
-    let decoded: [u8; 88] = BASE64_DECODER_STANDARD_NO_PAD.decode(encoded);
+    let decoded: [u8; 88] = BASE64_NO_PAD_DECODER.decode(encoded);
     assert(decoded == input.as_bytes());
 }

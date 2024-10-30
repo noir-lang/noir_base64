@@ -2,8 +2,8 @@ use super::defaults::BASE64_PADDING_CHAR;
 
 pub global STANDARD = Base64EncodeBE::new(true);
 pub global STANDARD_NO_PAD = Base64EncodeBE::new(false);
-pub global URL_SAFE = Base64EncodeBE::base64url(true);
-pub global URL_SAFE_NO_PAD = Base64EncodeBE::base64url(false);
+pub global URL_SAFE = Base64EncodeBE::base64url(false);
+pub global URL_SAFE_WITH_PAD = Base64EncodeBE::base64url(true);
 
 struct Base64EncodeBE {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
@@ -265,11 +265,11 @@ fn test_encode_max_byte() {
     let expected: [u8; 2] = [47, 119]; // "/w"
     assert(result == expected);
 
-    let result: [u8; 4] = URL_SAFE.encode(input);
+    let result: [u8; 4] = URL_SAFE_WITH_PAD.encode(input);
     let expected: [u8; 4] = [95, 119, 61, 61]; // "_w=="
     assert(result == expected);
 
-    let result: [u8; 2] = URL_SAFE_NO_PAD.encode(input);
+    let result: [u8; 2] = URL_SAFE.encode(input);
     let expected: [u8; 2] = [95, 119]; // "_w"
     assert(result == expected);
 }
@@ -286,9 +286,9 @@ fn test_encode_ascii() {
     assert(result == expected);
     let result = STANDARD_NO_PAD.encode(input);
     assert(result == expected);
-    let result = URL_SAFE.encode(input);
+    let result = URL_SAFE_WITH_PAD.encode(input);
     assert(result == expected);
-    let result = URL_SAFE_NO_PAD.encode(input);
+    let result = URL_SAFE.encode(input);
     assert(result == expected);
 }
 
@@ -310,9 +310,9 @@ fn test_encode_utf8() {
     assert(result == expected);
     let result = STANDARD_NO_PAD.encode(input);
     assert(result == expected);
-    let result = URL_SAFE.encode(input);
+    let result = URL_SAFE_WITH_PAD.encode(input);
     assert(result == expected);
-    let result = URL_SAFE_NO_PAD.encode(input);
+    let result = URL_SAFE.encode(input);
     assert(result == expected);
 }
 
@@ -420,21 +420,21 @@ fn test_encode_standard() {
 }
 
 #[test]
-fn test_encode_url_safe() {
+fn test_encode_url_safe_with_pad() {
     // test encoding to _ and -
     let input: [u8; 2] = [255, 224];
     let expected: [u8; 4] = [95, 45, 65, 61];
-    let result: [u8; 4] = URL_SAFE.encode(input);
+    let result: [u8; 4] = URL_SAFE_WITH_PAD.encode(input);
 
     assert(result == expected);
 }
 
 #[test]
-fn test_encode_url_safe_no_pad() {
+fn test_encode_url_safe() {
     // test encoding to _ and -
     let input: [u8; 2] = [255, 224];
     let expected: [u8; 3] = [95, 45, 65];
-    let result: [u8; 3] = URL_SAFE_NO_PAD.encode(input);
+    let result: [u8; 3] = URL_SAFE.encode(input);
     assert(result == expected);
 }
 
