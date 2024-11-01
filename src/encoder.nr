@@ -1,24 +1,50 @@
 use super::defaults::BASE64_PADDING_CHAR;
 
+/// Standard base64 encoder with padding.
 pub global STANDARD = Base64EncodeBE::new(true);
+
+/// Standard base64 encoder without padding.
 pub global STANDARD_NO_PAD = Base64EncodeBE::new(false);
+
+/// URL and Filename Safe base64 encoder without padding.
 pub global URL_SAFE = Base64EncodeBE::base64url(false);
+
+/// URL and Filename Safe base64 encoder with padding.
 pub global URL_SAFE_WITH_PAD = Base64EncodeBE::base64url(true);
 
+/// Base 64 encoder for big-endian byte arrays.
+///
+/// > Note: If the lookup table is not defined in a struct, access costs are expensive and ROM
+/// > tables aren't being used.
 struct Base64EncodeBE {
-    // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
+    /// The base64 lookup table.
     table: [u8; 64],
+    /// Whether to pad the output with '=' characters.
     pad: bool,
 }
 
 impl Base64EncodeBE {
     /// Creates a new encoder that uses the standard Base64 Alphabet (base64) specified in RFC 4648
-    /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
+    /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4).
+    ///
+    /// The alphabet values are standard UTF-8 (and ASCII) byte encodings so the index in the table
+    /// is the 6-bit Base64 value, and the value at that index is the UTF-8 encoding of that value.
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `pad`: Whether to pad the output with '=' characters.
+    ///
+    /// ## Returns
+    ///
+    /// The Base64 encoder instance.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let encoder = Base64EncodeBE::new(true);
+    /// ```
     fn new(pad: bool) -> Self {
         Base64EncodeBE {
-            // The alphabet values here are standard UTF-8 (and ASCII) byte encodings, so the index
-            // in the table is the 6-bit Base64 value, and the value at that index is the UTF-8
-            // encoding of that value.
             table: [
                 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85,
                 86, 87, 88, 89, 90, // 0-25 (A-Z)
@@ -32,8 +58,22 @@ impl Base64EncodeBE {
         }
     }
 
-    // Creates a new encoder that uses the URL and Filename Safe Alphabet specified in RFC 4648
-    // https://datatracker.ietf.org/doc/html/rfc4648#section-5
+    /// Creates a new encoder that uses the URL and Filename Safe Alphabet specified in RFC 4648
+    /// (https://datatracker.ietf.org/doc/html/rfc4648#section-5).
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `pad`: Whether to pad the output with '=' characters.
+    ///
+    /// ## Returns
+    ///
+    /// The Base64 encoder instance.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let encoder = Base64EncodeBE::base64url(true);
+    /// ```
     fn base64url(pad: bool) -> Self {
         Base64EncodeBE {
             table: [
@@ -50,13 +90,45 @@ impl Base64EncodeBE {
         }
     }
 
+    /// Gets the lookup table value at a given index.
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `idx`: The index in the lookup table.
+    ///
+    /// ## Returns
+    ///
+    /// The byte value from the lookup table.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let encoder = Base64EncodeBE::new(true);
+    /// ```
     fn get(self, idx: Field) -> u8 {
         self.table[idx]
     }
 
-    /**
-    * @brief Take an array of ASCII values and convert into base64 values
-    **/
+    /// Converts an array of ASCII values into base64 values.
+    ///
+    /// ## Type Parameters
+    ///
+    /// - `InputElements`: The number of elements in the input array.
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `self`: The Base64 encoder instance.
+    /// - `input`: The input array of ASCII values.
+    ///
+    /// ## Returns
+    ///
+    /// The array of base64 values.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let encoded = Base64EncodeBE::new(true).encode_elements("asdf".as_bytes());
+    /// ```
     fn encode_elements<let InputElements: u32>(
         self,
         input: [u8; InputElements],
@@ -69,9 +141,31 @@ impl Base64EncodeBE {
         result
     }
 
-    /**
-    * @brief Take an array of packed base64 encoded bytes and convert into ASCII
-    **/
+    /// Converts an array of packed base64 values into ASCII values.
+    ///
+    /// ## Type Parameters
+    ///
+    /// - `InputElements`: The number of elements in the input array.
+    /// - `OutputElements`: The number of elements in the output array.
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `self`: The Base64 encoder instance.
+    /// - `input`: The input array of packed base64 values.
+    ///
+    /// ## Constraints
+    ///
+    /// - input and output lengths are correct, including padding.
+    ///
+    /// ## Returns
+    ///
+    /// The array of ASCII values.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let decoded = Base64EncodeBE::new(true).encode("asdf".as_bytes());
+    /// ```
     pub fn encode<let InputBytes: u32, let OutputElements: u32>(
         self,
         input: [u8; InputBytes],

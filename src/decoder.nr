@@ -1,19 +1,47 @@
 use super::defaults::BASE64_PADDING_CHAR;
 
+/// Standard Base64 Alphabet (base64) with padding.
 pub global STANDARD = Base64DecodeBE::new(true);
+
+/// Standard Base64 Alphabet (base64) without padding.
 pub global STANDARD_NO_PAD = Base64DecodeBE::new(false);
+
+/// URL and Filename Safe Alphabet without padding.
 pub global URL_SAFE = Base64DecodeBE::base64url(false);
+
+/// URL and Filename Safe Alphabet with padding.
 pub global URL_SAFE_WITH_PAD = Base64DecodeBE::base64url(true);
 
+/// Invalid value for the lookup table.
 global INVALID_VALUE: u8 = 255;
+
+/// Base64 decoder for big-endian byte arrays.
+///
+/// > Note: If the lookup table is not defined in a struct, access costs are expensive and ROM
+/// tables aren't being used.
 struct Base64DecodeBE {
-    // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
+    /// The base64 lookup table.
     table: [u8; 256],
+    /// Whether the input has padding.
     pad: bool,
 }
 impl Base64DecodeBE {
     /// Creates a new decoder that uses the standard Base64 Alphabet (base64) specified in RFC 4648
-    /// https://datatracker.ietf.org/doc/html/rfc4648#section-4
+    /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4).
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `pad`: Whether the input has padding.
+    ///
+    /// ## Returns
+    ///
+    /// The Base64 decoder instance.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let decoder = Base64DecodeBE::new(true);
+    /// ```
     fn new(pad: bool) -> Self {
         Base64DecodeBE {
             table: [
@@ -280,8 +308,22 @@ impl Base64DecodeBE {
         }
     }
 
-    // Creates a new decoder that uses the URL and Filename Safe Alphabet specified in RFC 4648
-    // https://datatracker.ietf.org/doc/html/rfc4648#section-5
+    /// Creates a new decoder that uses the URL and Filename Safe Alphabet specified in RFC 4648
+    /// (https://datatracker.ietf.org/doc/html/rfc4648#section-5).
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `pad`: Whether the input has padding.
+    ///
+    /// ## Returns
+    ///
+    /// The Base64 decoder instance.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let decoder = Base64DecodeBE::base64url(true);
+    /// ```
     fn base64url(pad: bool) -> Self {
         Base64DecodeBE {
             table: [
@@ -548,15 +590,54 @@ impl Base64DecodeBE {
         }
     }
 
+    /// Gets the lookup table value at a given index.
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `idx`: The index to get the value for.
+    ///
+    /// ## Returns
+    ///
+    /// The value from the lookup table.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let value = Base64DecodeBE::new(true).get(65);
+    /// ```
     fn get(self, idx: Field) -> u8 {
         self.table[idx]
     }
 
-    /**
-    * @brief Take an array of ASCII values and convert into *packed* byte array of base64 values
-    *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
-    *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
-    **/
+    /// Converts an array of ASCII values into a packed byte array of base64 values.
+    ///
+    /// > Note: Each Base64 value is 6 bits. This method will produce a byte array where data is
+    /// > concatenated so that there are no sparse bits (e.g. encoding 4 ASCII values produces 24
+    /// > bits of Base64 data = 3 bytes of output data).
+    ///
+    /// ## Type Parameters
+    ///
+    /// - `InputElements`: The number of input elements.
+    /// - `OutputBytes`: The number of output bytes.
+    ///
+    /// ## Value Parameters
+    ///
+    /// - `self`: The Base64 decoder instance.
+    /// - `input`: The input array.
+    ///
+    /// ## Constraints
+    ///
+    /// - input and output lengths are correct, including padding.
+    ///
+    /// ## Returns
+    ///
+    /// The packed byte array of base64 values.
+    ///
+    /// ## Usage
+    ///
+    /// ```nr
+    /// let result = Decoder::new(false).decode::<4, 3>([65, 66, 67, 68]);
+    /// ```
     pub fn decode<let InputElements: u32, let OutputBytes: u32>(
         self,
         input: [u8; InputElements],
