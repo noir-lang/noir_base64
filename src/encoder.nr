@@ -169,6 +169,98 @@ impl Base64EncodeBE {
                 }
             }
         }
+        result
+    }
+
+    /// Take a `BoundedVec` input containing up to `MAX_INPUT_LEN` bytes of data and encode the
+    /// first `input.len()` bytes into Base64.
+    pub fn encode_var<let MAX_INPUT_LEN: u32, let MAX_OUTPUT_LEN: u32>(
+        self,
+        input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, MAX_OUTPUT_LEN> {
+        // Calculate the number of padding characters and the length of the output without padding
+        let rem = input.len() % 3;
+        let num_padding_chars = if rem == 1 {
+            2
+        } else if rem == 2 {
+            1
+        } else {
+            0
+        };
+        // Every 3 chars will be encoded as 4 base64 chars
+        let encoded_length = (input.len() + 2) / 3 * 4; // ceil(input * 4 / 3)
+        let non_padded_output_length = encoded_length - num_padding_chars;
+        assert(
+            MAX_OUTPUT_LEN >= (MAX_INPUT_LEN + 2) / 3 * 4,
+            "maximum output length is too short for the specified maximum input length",
+        );
+
+        let mut result: BoundedVec<u8, MAX_OUTPUT_LEN> = BoundedVec::new();
+        // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
+        // we pack 40 base64 values into a field element and convert into 30 bytes
+        let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
+        let BYTES_PER_CHUNK: u32 = 30;
+        let max_chunks =
+            MAX_INPUT_LEN / BYTES_PER_CHUNK + (MAX_INPUT_LEN % BYTES_PER_CHUNK != 0) as u32;
+        let num_chunks =
+            (input.len() / BYTES_PER_CHUNK) + (input.len() % BYTES_PER_CHUNK != 0) as u32;
+
+        if num_chunks > 0 {
+            let final_chunk = num_chunks - 1;
+
+            for i in 0..max_chunks {
+                if (i < final_chunk) {
+                    // pack the bytes into the field element
+                    let mut slice: Field = 0;
+                    for j in 0..BYTES_PER_CHUNK {
+                        slice *= 256;
+                        slice += input.get_unchecked(i * BYTES_PER_CHUNK + j) as Field;
+                    }
+
+                    // extract the 6-bit values from the Field element
+                    let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
+                    for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+                        let base64 = self.get(slice_base64_chunks[j] as Field);
+                        result.push(base64);
+                    }
+                }
+            }
+
+            // process the final chunk, which may require padding
+            let byte_offset = final_chunk * BYTES_PER_CHUNK;
+            let base64_offset = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
+            let bytes_in_final_chunk = input.len() - byte_offset;
+            let num_elements_in_final_chunk = encoded_length - base64_offset;
+
+            // pack the bytes into the field element
+            let mut slice: Field = 0;
+            for j in 0..BYTES_PER_CHUNK {
+                slice *= 256;
+                if (j < bytes_in_final_chunk) {
+                    slice += input.get_unchecked((num_chunks - 1) * BYTES_PER_CHUNK + j) as Field;
+                }
+            }
+
+            // extract the 6-bit values from the Field element
+            let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
+            for i in 0..40 {
+                if (i < num_elements_in_final_chunk & base64_offset + i < non_padded_output_length) {
+                    let base64 = self.get(slice_base64_chunks[i] as Field);
+                    result.push(base64);
+                }
+            }
+
+            if self.pad {
+                // handle padding
+                let rem = input.len() % 3;
+                if (rem == 1) {
+                    result.push(BASE64_PADDING_CHAR);
+                    result.push(BASE64_PADDING_CHAR);
+                } else if (rem == 2) {
+                    result.push(BASE64_PADDING_CHAR);
+                }
+            }
+        }
 
         result
     }
