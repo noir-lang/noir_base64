@@ -662,6 +662,109 @@ impl Base64DecodeBE {
 
         result
     }
+
+    /// Take a `BoundedVec` input containing up to `MAX_INPUT_LEN` bytes of base64-encoded
+    /// data and decode the first `input.len()` bytes.
+    pub fn decode_var<let MAX_INPUT_LEN: u32, let MAX_OUTPUT_LEN: u32>(
+        self,
+        input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, MAX_OUTPUT_LEN> {
+        // calculate the number of padding characters from the input data
+        let num_padding_chars = if self.pad & input.len() > 0 {
+            assert(
+                input.len() % 4 == 0,
+                "DecodeError: the input length of padded base64 data should be a multiple of 4.",
+            );
+            let last_char = input.get(input.len() - 1);
+            if last_char != BASE64_PADDING_CHAR {
+                0
+            } else if input.get(input.len() - 2) == BASE64_PADDING_CHAR {
+                2
+            } else {
+                1
+            }
+        } else {
+            0
+        };
+
+        let unpadded_input_len = input.len() - num_padding_chars;
+        let decoded_length = unpadded_input_len * 3 / 4;
+        assert(
+            MAX_INPUT_LEN >= (MAX_OUTPUT_LEN + 2) / 3 * 4,
+            "maximum input length is too short for the specified maximum output length",
+        );
+
+        let mut result: BoundedVec<u8, MAX_OUTPUT_LEN> = BoundedVec::new();
+        // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
+        // we pack 40 base64 values into a field element and convert into 30 bytes
+        let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
+        let BYTES_PER_CHUNK: u32 = 30;
+        let max_chunks = MAX_INPUT_LEN / BASE64_ELEMENTS_PER_CHUNK
+            + (MAX_INPUT_LEN % BASE64_ELEMENTS_PER_CHUNK != 0) as u32;
+        let num_chunks = (input.len() / BASE64_ELEMENTS_PER_CHUNK)
+            + (input.len() % BASE64_ELEMENTS_PER_CHUNK != 0) as u32;
+
+        if num_chunks > 0 {
+            let final_chunk = num_chunks - 1;
+
+            for i in 0..max_chunks {
+                if (i < final_chunk) {
+                    let mut slice: Field = 0;
+                    for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+                        slice *= 64;
+                        let offset = i * BASE64_ELEMENTS_PER_CHUNK + j;
+                        let input_byte = input.get_unchecked(offset);
+                        let decoded = self.get(input_byte as Field);
+                        assert(
+                            decoded != INVALID_VALUE,
+                            f"DecodeError: invalid symbol {input_byte}, offset {offset}.",
+                        );
+                        slice += decoded as Field;
+                    }
+                    let slice_bytes: [u8; 30] = slice.to_be_bytes();
+                    for j in 0..BYTES_PER_CHUNK {
+                        result.push(slice_bytes[j]);
+                    }
+                }
+            }
+
+            // process the final chunk, which may contain padding
+            let base64_offset: u32 = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
+            let byte_offset = final_chunk * BYTES_PER_CHUNK;
+            let base64_elements_in_final_chunk = if self.pad {
+                input.len() - base64_offset - num_padding_chars
+            } else {
+                input.len() - base64_offset
+            };
+
+            // pack the base64 values into the field element
+            let mut slice: Field = 0;
+            for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+                slice *= 64;
+                if (j < base64_elements_in_final_chunk) {
+                    let offset = base64_offset + j;
+                    let input_byte = input.get_unchecked(offset);
+                    let decoded = self.get(input_byte as Field);
+                    assert(
+                        decoded != INVALID_VALUE,
+                        f"DecodeError: invalid symbol {input_byte}, offset {offset}.",
+                    );
+                    slice += decoded as Field;
+                }
+            }
+
+            // extract the bytes from the Field element
+            let slice_bytes: [u8; 30] = slice.to_be_bytes();
+            let num_bytes_in_final_chunk = decoded_length - byte_offset;
+            for i in 0..BYTES_PER_CHUNK {
+                if (i < num_bytes_in_final_chunk) {
+                    result.push(slice_bytes[i]);
+                }
+            }
+        }
+
+        result
+    }
 }
 
 #[test]
