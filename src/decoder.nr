@@ -1064,3 +1064,125 @@ fn test_decode_with_padding() {
     ];
     assert(result == expected);
 }
+
+#[test]
+fn test_decode_var_empty() {
+    let input: BoundedVec<u8, 0> = BoundedVec::new();
+    let expected: BoundedVec<u8, 0> = BoundedVec::new();
+    let result = STANDARD.decode_var(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_decode_var_padding() {
+    // f
+    let input: BoundedVec<u8, 4> = BoundedVec::from_array([90, 103, 61, 61]);
+    let expected: BoundedVec<u8, 3> = BoundedVec::from_array([102]);
+    let result = STANDARD.decode_var(input);
+
+    assert(result == expected);
+
+    // fo
+    let input: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 56, 61]);
+    let expected: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111]);
+    let result = STANDARD.decode_var(input);
+
+    assert(result == expected);
+
+    // foo
+    let input: BoundedVec<u8, 8> = BoundedVec::from_array([90, 109, 57, 118]);
+    let expected: BoundedVec<u8, 6> = BoundedVec::from_array([102, 111, 111]);
+    let result = STANDARD.decode_var(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_decode_var_standard_no_pad() {
+    // f
+    let input: BoundedVec<u8, 4> = BoundedVec::from_array([90, 103]);
+    let expected: BoundedVec<u8, 3> = BoundedVec::from_array([102]);
+    let result = STANDARD_NO_PAD.decode_var(input);
+
+    assert(result == expected);
+
+    // fo
+    let input: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 56]);
+    let expected: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111]);
+    let result = STANDARD_NO_PAD.decode_var(input);
+
+    assert(result == expected);
+
+    // foo
+    let input: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 57, 118]);
+    let expected: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111, 111]);
+    let result = STANDARD_NO_PAD.decode_var(input);
+
+    assert(result == expected);
+}
+
+#[test(should_fail_with = "DecodeError: invalid symbol 61, offset 3")]
+fn test_decode_var_no_pad_fail_with_padding() {
+    // test decoding / and +
+    let input: BoundedVec<u8, 4> = BoundedVec::from_array([47, 43, 65, 61]);
+    let expected: BoundedVec<u8, 3> = BoundedVec::from_array([255, 224]);
+    let result = STANDARD_NO_PAD.decode_var(input);
+    assert(result == expected);
+}
+
+#[test]
+fn test_decode_var() {
+    // base64: "SGVsbG8sIFdvcmxkIQ=="
+    let input: BoundedVec<u8, 24> = BoundedVec::from_array([
+        83, 71, 86, 115, 98, 71, 56, 115, 73, 70, 100, 118, 99, 109, 120, 107, 73, 81, 61, 61,
+    ]);
+    // base64: "SGVsbG8sIFdvcmxkIQ"
+    let input_no_pad: BoundedVec<u8, 24> = BoundedVec::from_array([
+        83, 71, 86, 115, 98, 71, 56, 115, 73, 70, 100, 118, 99, 109, 120, 107, 73, 81,
+    ]);
+    // "Hello, World!"
+    let expected: BoundedVec<u8, 16> =
+        BoundedVec::from_array([72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 33]);
+
+    // all configurations should decode the same way
+    let result = STANDARD.decode_var(input);
+    assert(result == expected);
+    let result = STANDARD_NO_PAD.decode_var(input_no_pad);
+    assert(result == expected);
+    let result = URL_SAFE_WITH_PAD.decode_var(input);
+    assert(result == expected);
+    let result = URL_SAFE.decode_var(input_no_pad);
+    assert(result == expected);
+}
+
+#[test]
+fn test_decode_var_multi_chunks() {
+    // base64: "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4="
+    let input: BoundedVec<u8, 64> = BoundedVec::from_array([
+        86, 71, 104, 108, 73, 72, 70, 49, 97, 87, 78, 114, 73, 71, 74, 121, 98, 51, 100, 117, 73,
+        71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
+        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52, 61,
+    ]);
+    // base64: "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4="
+    let input_no_pad: BoundedVec<u8, 64> = BoundedVec::from_array([
+        86, 71, 104, 108, 73, 72, 70, 49, 97, 87, 78, 114, 73, 71, 74, 121, 98, 51, 100, 117, 73,
+        71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
+        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52,
+    ]);
+    // "The quick brown fox jumps over the lazy dog."
+    let expected: BoundedVec<u8, 48> = BoundedVec::from_array([
+        84, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98, 114, 111, 119, 110, 32, 102, 111, 120, 32,
+        106, 117, 109, 112, 115, 32, 111, 118, 101, 114, 32, 116, 104, 101, 32, 108, 97, 122, 121,
+        32, 100, 111, 103, 46,
+    ]);
+
+    // all configurations should give the same encoding
+    let result = STANDARD.decode_var(input);
+    assert(result == expected);
+    let result = STANDARD_NO_PAD.decode_var(input_no_pad);
+    assert(result == expected);
+    let result = URL_SAFE_WITH_PAD.decode_var(input);
+    assert(result == expected);
+    let result = URL_SAFE.decode_var(input_no_pad);
+    assert(result == expected);
+}
