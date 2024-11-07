@@ -581,10 +581,22 @@ impl Base64DecodeBE {
             );
             // enforce Base64 padding is valid
             if num_padding_chars == 2 {
-                assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
-                assert(input[InputElements - 2] == BASE64_PADDING_CHAR);
+                let offset = InputElements - 1;
+                assert(
+                    input[offset] == BASE64_PADDING_CHAR,
+                    f"DecodeError: expected padding at offset {offset}.",
+                );
+                let offset = InputElements - 2;
+                assert(
+                    input[offset] == BASE64_PADDING_CHAR,
+                    f"DecodeError: expected padding at offset {offset}.",
+                );
             } else if num_padding_chars == 1 {
-                assert(input[InputElements - 1] == BASE64_PADDING_CHAR);
+                let offset = InputElements - 1;
+                assert(
+                    input[InputElements - 1] == BASE64_PADDING_CHAR,
+                    f"DecodeError: expected padding at offset {offset}.",
+                );
             }
         } else {
             let expected = encoded_length - num_padding_chars;
