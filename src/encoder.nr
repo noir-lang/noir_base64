@@ -557,3 +557,117 @@ fn test_base64_encode_slash() {
     // Should map to '/' in ASCII, which is 47
     assert(result[0] == 47);
 }
+
+#[test]
+fn test_encode_var_empty() {
+    let input: BoundedVec<u8, 3> = BoundedVec::new();
+    let result = STANDARD.encode_var(input);
+    let expected: BoundedVec<u8, 4> = BoundedVec::new();
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_var_padding() {
+    // f
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 103, 61, 61]);
+    let result = STANDARD.encode_var(input);
+
+    assert(result == expected);
+
+    // fo
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 56, 61]);
+    let result = STANDARD.encode_var(input);
+
+    assert(result == expected);
+
+    // foo
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111, 111]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 57, 118]);
+    let result = STANDARD.encode_var(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_var_standard_no_pad() {
+    // f
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 103]);
+    let result = STANDARD_NO_PAD.encode_var(input);
+
+    assert(result == expected);
+
+    // fo
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 56]);
+    let result = STANDARD_NO_PAD.encode_var(input);
+
+    assert(result == expected);
+
+    // foo
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111, 111]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 57, 118]);
+    let result = STANDARD_NO_PAD.encode_var(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_var() {
+    // "Hello, World!"
+    let input: BoundedVec<u8, 16> =
+        BoundedVec::from_array([72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 33]);
+    // base64: "SGVsbG8sIFdvcmxkIQ=="
+    let expected: BoundedVec<u8, 24> = BoundedVec::from_array([
+        83, 71, 86, 115, 98, 71, 56, 115, 73, 70, 100, 118, 99, 109, 120, 107, 73, 81, 61, 61,
+    ]);
+    // base64: "SGVsbG8sIFdvcmxkIQ"
+    let expected_no_pad: BoundedVec<u8, 24> = BoundedVec::from_array([
+        83, 71, 86, 115, 98, 71, 56, 115, 73, 70, 100, 118, 99, 109, 120, 107, 73, 81,
+    ]);
+
+    // all configurations should give the same encoding
+    let result = STANDARD.encode_var(input);
+    assert(result == expected);
+    let result = STANDARD_NO_PAD.encode_var(input);
+    assert(result == expected_no_pad);
+    let result = URL_SAFE_WITH_PAD.encode_var(input);
+    assert(result == expected);
+    let result = URL_SAFE.encode_var(input);
+    assert(result == expected_no_pad);
+}
+
+#[test]
+fn test_encode_var_multi_chunks() {
+    // "The quick brown fox jumps over the lazy dog."
+    let input: BoundedVec<u8, 48> = BoundedVec::from_array([
+        84, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98, 114, 111, 119, 110, 32, 102, 111, 120, 32,
+        106, 117, 109, 112, 115, 32, 111, 118, 101, 114, 32, 116, 104, 101, 32, 108, 97, 122, 121,
+        32, 100, 111, 103, 46,
+    ]);
+    // base64: "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4="
+    let expected: BoundedVec<u8, 64> = BoundedVec::from_array([
+        86, 71, 104, 108, 73, 72, 70, 49, 97, 87, 78, 114, 73, 71, 74, 121, 98, 51, 100, 117, 73,
+        71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
+        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52, 61,
+    ]);
+    // base64: "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4="
+    let expected_no_pad: BoundedVec<u8, 64> = BoundedVec::from_array([
+        86, 71, 104, 108, 73, 72, 70, 49, 97, 87, 78, 114, 73, 71, 74, 121, 98, 51, 100, 117, 73,
+        71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
+        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52,
+    ]);
+
+    // all configurations should give the same encoding
+    let result = STANDARD.encode_var(input);
+    assert(result == expected);
+    let result = STANDARD_NO_PAD.encode_var(input);
+    assert(result == expected_no_pad);
+    let result = URL_SAFE_WITH_PAD.encode_var(input);
+    assert(result == expected);
+    let result = URL_SAFE.encode_var(input);
+    assert(result == expected_no_pad);
+}
