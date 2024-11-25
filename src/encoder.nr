@@ -1,19 +1,15 @@
 use super::defaults::BASE64_PADDING_CHAR;
 
 /// Standard base64 encoder with padding.
-pub global STANDARD = Base64EncodeBE::new(true);
+pub global STANDARD: Base64EncodeBE = Base64EncodeBE::new(true);
 
 /// Standard base64 encoder without padding.
-pub global STANDARD_NO_PAD = Base64EncodeBE::new(false);
+pub global STANDARD_NO_PAD: Base64EncodeBE = Base64EncodeBE::new(false);
 
 /// URL and Filename Safe base64 encoder without padding.
-pub global URL_SAFE = Base64EncodeBE::base64url(false);
+pub global URL_SAFE: Base64EncodeBE = Base64EncodeBE::base64url(false);
 
 /// URL and Filename Safe base64 encoder with padding.
-pub global URL_SAFE_WITH_PAD = Base64EncodeBE::base64url(true);
-pub global STANDARD: Base64EncodeBE = Base64EncodeBE::new(true);
-pub global STANDARD_NO_PAD: Base64EncodeBE = Base64EncodeBE::new(false);
-pub global URL_SAFE: Base64EncodeBE = Base64EncodeBE::base64url(false);
 pub global URL_SAFE_WITH_PAD: Base64EncodeBE = Base64EncodeBE::base64url(true);
 
 /// Base 64 encoder for big-endian byte arrays.

@@ -1,19 +1,15 @@
 use super::defaults::BASE64_PADDING_CHAR;
 
 /// Standard Base64 Alphabet (base64) with padding.
-pub global STANDARD = Base64DecodeBE::new(true);
+pub global STANDARD: Base64DecodeBE = Base64DecodeBE::new(true);
 
 /// Standard Base64 Alphabet (base64) without padding.
-pub global STANDARD_NO_PAD = Base64DecodeBE::new(false);
+pub global STANDARD_NO_PAD: Base64DecodeBE = Base64DecodeBE::new(false);
 
 /// URL and Filename Safe Alphabet without padding.
-pub global URL_SAFE = Base64DecodeBE::base64url(false);
+pub global URL_SAFE: Base64DecodeBE = Base64DecodeBE::base64url(false);
 
 /// URL and Filename Safe Alphabet with padding.
-pub global URL_SAFE_WITH_PAD = Base64DecodeBE::base64url(true);
-pub global STANDARD: Base64DecodeBE = Base64DecodeBE::new(true);
-pub global STANDARD_NO_PAD: Base64DecodeBE = Base64DecodeBE::new(false);
-pub global URL_SAFE: Base64DecodeBE = Base64DecodeBE::base64url(false);
 pub global URL_SAFE_WITH_PAD: Base64DecodeBE = Base64DecodeBE::base64url(true);
 
 /// Invalid value for the lookup table.
