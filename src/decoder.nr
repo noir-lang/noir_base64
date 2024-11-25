@@ -25,6 +25,7 @@ struct Base64DecodeBE {
     /// Whether the input has padding.
     pad: bool,
 }
+
 impl Base64DecodeBE {
     /// Creates a new decoder that uses the standard Base64 Alphabet (base64) specified in RFC 4648
     /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4).
