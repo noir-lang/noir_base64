@@ -1,9 +1,9 @@
 use super::defaults::BASE64_PADDING_CHAR;
 
-pub global STANDARD = Base64DecodeBE::new(true);
-pub global STANDARD_NO_PAD = Base64DecodeBE::new(false);
-pub global URL_SAFE = Base64DecodeBE::base64url(false);
-pub global URL_SAFE_WITH_PAD = Base64DecodeBE::base64url(true);
+pub global STANDARD: Base64DecodeBE = Base64DecodeBE::new(true);
+pub global STANDARD_NO_PAD: Base64DecodeBE = Base64DecodeBE::new(false);
+pub global URL_SAFE: Base64DecodeBE = Base64DecodeBE::base64url(false);
+pub global URL_SAFE_WITH_PAD: Base64DecodeBE = Base64DecodeBE::base64url(true);
 
 global INVALID_VALUE: u8 = 255;
 struct Base64DecodeBE {

@@ -1,9 +1,9 @@
 use super::defaults::BASE64_PADDING_CHAR;
 
-pub global STANDARD = Base64EncodeBE::new(true);
-pub global STANDARD_NO_PAD = Base64EncodeBE::new(false);
-pub global URL_SAFE = Base64EncodeBE::base64url(false);
-pub global URL_SAFE_WITH_PAD = Base64EncodeBE::base64url(true);
+pub global STANDARD: Base64EncodeBE = Base64EncodeBE::new(true);
+pub global STANDARD_NO_PAD: Base64EncodeBE = Base64EncodeBE::new(false);
+pub global URL_SAFE: Base64EncodeBE = Base64EncodeBE::base64url(false);
+pub global URL_SAFE_WITH_PAD: Base64EncodeBE = Base64EncodeBE::base64url(true);
 
 struct Base64EncodeBE {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
