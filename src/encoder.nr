@@ -1,4 +1,4 @@
-use super::defaults::BASE64_PADDING_CHAR;
+use super::defaults::{BASE64_ELEMENTS_PER_CHUNK, BASE64_PADDING_CHAR, BYTES_PER_CHUNK};
 
 pub global STANDARD: Base64EncodeBE = Base64EncodeBE::new(true);
 pub global STANDARD_NO_PAD: Base64EncodeBE = Base64EncodeBE::new(false);
@@ -76,9 +76,6 @@ impl Base64EncodeBE {
         self,
         input: [u8; InputBytes],
     ) -> [u8; OutputElements] {
-        // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
-        // we pack 40 base64 values into a field element and convert into 30 bytes
-        // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
         // Calculate the number of padding characters and the length of the output without padding
         let rem = InputBytes % 3;
         let num_padding_chars = if rem == 1 {
@@ -107,8 +104,6 @@ impl Base64EncodeBE {
 
         let mut result: [u8; OutputElements] = [0; OutputElements];
 
-        let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
-        let BYTES_PER_CHUNK: u32 = 30;
         let num_chunks =
             (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
 
@@ -187,6 +182,7 @@ impl Base64EncodeBE {
         } else {
             0
         };
+
         // Every 3 chars will be encoded as 4 base64 chars
         let encoded_length = (input.len() + 2) / 3 * 4; // ceil(input * 4 / 3)
         let non_padded_output_length = encoded_length - num_padding_chars;
@@ -196,10 +192,7 @@ impl Base64EncodeBE {
         );
 
         let mut result: BoundedVec<u8, MAX_OUTPUT_LEN> = BoundedVec::new();
-        // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
-        // we pack 40 base64 values into a field element and convert into 30 bytes
-        let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
-        let BYTES_PER_CHUNK: u32 = 30;
+
         let max_chunks =
             MAX_INPUT_LEN / BYTES_PER_CHUNK + (MAX_INPUT_LEN % BYTES_PER_CHUNK != 0) as u32;
         let num_chunks =

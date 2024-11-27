@@ -1,4 +1,4 @@
-use super::defaults::BASE64_PADDING_CHAR;
+use super::defaults::{BASE64_ELEMENTS_PER_CHUNK, BASE64_PADDING_CHAR, BYTES_PER_CHUNK};
 
 pub global STANDARD: Base64DecodeBE = Base64DecodeBE::new(true);
 pub global STANDARD_NO_PAD: Base64DecodeBE = Base64DecodeBE::new(false);
@@ -606,12 +606,7 @@ impl Base64DecodeBE {
             );
         }
 
-        // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
-        // we pack 40 base64 values into a field element and convert into 30 bytes
-        // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
         let mut result: [u8; OutputBytes] = [0; OutputBytes];
-        let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
-        let BYTES_PER_CHUNK: u32 = 30;
         let num_chunks = (InputElements / BASE64_ELEMENTS_PER_CHUNK)
             + (InputElements % BASE64_ELEMENTS_PER_CHUNK != 0) as u32;
 
@@ -707,10 +702,7 @@ impl Base64DecodeBE {
         );
 
         let mut result: BoundedVec<u8, MAX_OUTPUT_LEN> = BoundedVec::new();
-        // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
-        // we pack 40 base64 values into a field element and convert into 30 bytes
-        let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
-        let BYTES_PER_CHUNK: u32 = 30;
+
         let max_chunks = MAX_INPUT_LEN / BASE64_ELEMENTS_PER_CHUNK
             + (MAX_INPUT_LEN % BASE64_ELEMENTS_PER_CHUNK != 0) as u32;
         let num_chunks = (input.len() / BASE64_ELEMENTS_PER_CHUNK)
