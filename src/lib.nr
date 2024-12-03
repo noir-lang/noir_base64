@@ -29,6 +29,10 @@ pub use decoder::{
 
 pub(crate) mod defaults {
     pub(crate) global BASE64_PADDING_CHAR: u8 = 61;
+    // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
+    // we pack 40 base64 values into a field element and convert into 30 bytes
+    pub(crate) global BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
+    pub(crate) global BYTES_PER_CHUNK: u32 = 30;
 }
 
 #[test]
