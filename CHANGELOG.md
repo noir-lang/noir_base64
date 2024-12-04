@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/noir-lang/noir_base64/compare/v0.3.0...v0.3.1) (2024-12-04)
+
+
+### Bug Fixes
+
+* Add type declarations to globals ([#29](https://github.com/noir-lang/noir_base64/issues/29)) ([6edc173](https://github.com/noir-lang/noir_base64/commit/6edc173d4f0f0a76c23f8d7cdd35dc5977ba0567))
+
 ## [0.3.0](https://github.com/noir-lang/noir_base64/compare/v0.2.3...v0.3.0) (2024-10-30)
 
 
