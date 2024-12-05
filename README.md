@@ -2,6 +2,17 @@
 
 A Base64 encoding/decoding library written in Noir which can encode arbitrary byte arrays into Base64 and decode Base64-encoded byte arrays (e.g. `"SGVsbG8gV29ybGQ=".as_bytes()`).
 
+## Noir Version Compatibility
+
+We have tested this library with Noir nightly, 0.36.0, and 1.0.0-beta.0
+
+## Dependencies
+
+- Noir >=1.0.0
+- Barretenberg ≥v0.56.1
+
+Refer to [Noir's docs](https://noir-lang.org/docs/getting_started/quick_start) and [Barretenberg's docs](https://github.com/AztecProtocol/aztec-packages/blob/master/barretenberg/cpp/src/barretenberg/bb/readme.md#installation) for installation steps.
+
 ## Usage
 ### Configuration
 Start by selecting the encoder or decoder for your configuration. These are defined separately so that only one lookup table will be instantiated at a time, since many cases will require either an encoder or a decoder but not both.
