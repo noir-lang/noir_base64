@@ -2,6 +2,10 @@
 
 A Base64 encoding/decoding library written in Noir which can encode arbitrary byte arrays into Base64 and decode Base64-encoded byte arrays (e.g. `"SGVsbG8gV29ybGQ=".as_bytes()`).
 
+## Noir Version Compatibility
+
+This library is tested with all Noir stable releases from v0.36.0.
+
 ## Usage
 ### Configuration
 Start by selecting the encoder or decoder for your configuration. These are defined separately so that only one lookup table will be instantiated at a time, since many cases will require either an encoder or a decoder but not both.
