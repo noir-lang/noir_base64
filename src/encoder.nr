@@ -69,14 +69,29 @@ impl Base64EncodeBE {
         result
     }
 
+    pub fn encode2<let InputBytes: u32>(
+        self,
+        input: [u8; InputBytes],
+    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 2) + ((InputBytes % 3) / 2)] {
+        let num_padding_chars = (((InputBytes % 3) % 2) * 2) + ((InputBytes % 3) / 2);
+
+        let mut r: [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 2) + ((InputBytes % 3) / 2)] =
+            [0; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 2) + ((InputBytes % 3) / 2)];
+        r
+    }
     /**
     * @brief Take an array of packed base64 encoded bytes and convert into ASCII
     **/
-    pub fn encode<let InputBytes: u32, let OutputElements: u32>(
+    pub fn encode<let InputBytes: u32>(
         self,
         input: [u8; InputBytes],
-    ) -> [u8; OutputElements] {
+    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] {
         // Calculate the number of padding characters and the length of the output without padding
+
+        // input bytes modulo 3 . e.g.
+
+        // input = 5 implies 1 padding char = 40 bits of data = 6 base64 vals + 2 bits
+        // 1 is padding so we have 5 base64 vals
         let rem = InputBytes % 3;
         let num_padding_chars = if rem == 1 {
             2
@@ -85,24 +100,102 @@ impl Base64EncodeBE {
         } else {
             0
         };
+        let OutputElements =
+            ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2);
         let non_padded_output_length = OutputElements - num_padding_chars;
+
+        let mut result: [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] = [
+            0; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)
+        ];
+
+        let num_chunks =
+            (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
+
+        if num_chunks > 0 {
+            let final_chunk = num_chunks - 1;
+
+            for i in 0..final_chunk {
+                // pack the bytes into the field element
+                let mut slice: Field = 0;
+                for j in 0..BYTES_PER_CHUNK {
+                    slice *= 256;
+                    slice += input[i * BYTES_PER_CHUNK + j] as Field;
+                }
+
+                // extract the 6-bit values from the Field element
+                let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
+                for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+                    result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
+                }
+            }
+
+            // process the final chunk, which may require padding
+            let byte_offset = final_chunk * BYTES_PER_CHUNK;
+            let base64_offset = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
+            let bytes_in_final_chunk = InputBytes - byte_offset;
+            let num_elements_in_final_chunk = OutputElements - base64_offset;
+
+            // pack the bytes into the field element
+            let mut slice: Field = 0;
+            for j in 0..bytes_in_final_chunk {
+                slice *= 256;
+                slice += input[(num_chunks - 1) * BYTES_PER_CHUNK + j] as Field;
+            }
+            for _ in bytes_in_final_chunk..BYTES_PER_CHUNK {
+                slice *= 256;
+            }
+
+            // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
+            // extract the 6-bit values from the Field element
+            let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
+            for i in 0..num_elements_in_final_chunk {
+                // If padding is enabled, we can skip setting the last `non_padded_output_length` chars
+                //    if (!self.pad | base64_offset + i < non_padded_output_length) {
+                result[base64_offset + i] = slice_base64_chunks[i];
+                //    }
+            }
+
+            result = self.encode_elements(result);
+
+            //     if self.pad {
+            // handle padding
+            let rem = InputBytes % 3;
+            if (rem == 1) {
+                result[OutputElements - 1] = BASE64_PADDING_CHAR;
+                result[OutputElements - 2] = BASE64_PADDING_CHAR;
+            } else if (rem == 2) {
+                result[OutputElements - 1] = BASE64_PADDING_CHAR;
+            }
+            //   }
+        }
+        result
+    }
+
+    pub fn encode_no_pad<let InputBytes: u32>(
+        self,
+        input: [u8; InputBytes],
+    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2)) + (((InputBytes % 3) / 2))] {
+        // Calculate the number of padding characters and the length of the output without padding
+
+        // input bytes modulo 3 . e.g.
+
+        // input = 5 implies 1 padding char = 40 bits of data = 6 base64 vals + 2 bits
+        // 1 is padding so we have 5 base64 vals
+
+        let OutputElements =
+            ((InputBytes * 8) / 6) + ((InputBytes % 3) % 2) + ((InputBytes % 3) / 2);
+        let non_padded_output_length = OutputElements;
 
         // Assert that the output length is correct
         // Every 3 chars will be encoded as 4 base64 chars
-        let encoded_length = (InputBytes + 2) / 3 * 4; // ceil(input * 4 / 3)
-        if self.pad {
-            assert(
-                encoded_length == OutputElements,
-                f"EncodeError: invalid output length. Expected {encoded_length} output elements, but got {OutputElements}.",
-            );
-        } else {
-            assert(
-                encoded_length - num_padding_chars == OutputElements,
-                f"EncodeError: invalid output length. Expected {encoded_length} output elements, but got {OutputElements}.",
-            );
-        }
+        // let encoded_length = (InputBytes + 2) / 3 * 4; // ceil(input * 4 / 3)
+        // assert(
+        //     encoded_length == OutputElements,
+        //     f"EncodeError: invalid output length. Expected {encoded_length} output elements, but got {OutputElements}.",
+        // );
 
-        let mut result: [u8; OutputElements] = [0; OutputElements];
+        let mut result: [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2)) + (((InputBytes % 3) / 2))] =
+            [0; ((InputBytes * 8) / 6) + ((InputBytes % 3) % 2) + ((InputBytes % 3) / 2)];
 
         let num_chunks =
             (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
@@ -152,17 +245,6 @@ impl Base64EncodeBE {
             }
 
             result = self.encode_elements(result);
-
-            if self.pad {
-                // handle padding
-                let rem = InputBytes % 3;
-                if (rem == 1) {
-                    result[OutputElements - 1] = BASE64_PADDING_CHAR;
-                    result[OutputElements - 2] = BASE64_PADDING_CHAR;
-                } else if (rem == 2) {
-                    result[OutputElements - 1] = BASE64_PADDING_CHAR;
-                }
-            }
         }
         result
     }
@@ -319,21 +401,21 @@ fn test_encode_standard_no_pad() {
     // f
     let input: [u8; 1] = [102];
     let expected: [u8; 2] = [90, 103];
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = STANDARD_NO_PAD.encode_no_pad(input);
 
     assert(result == expected);
 
     // fo
     let input: [u8; 2] = [102, 111];
     let expected: [u8; 3] = [90, 109, 56];
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = STANDARD_NO_PAD.encode_no_pad(input);
 
     assert(result == expected);
 
     // foo
     let input: [u8; 3] = [102, 111, 111];
     let expected: [u8; 4] = [90, 109, 57, 118];
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = STANDARD_NO_PAD.encode_no_pad(input);
 
     assert(result == expected);
 }
@@ -346,7 +428,7 @@ fn test_encode_max_byte() {
     let expected: [u8; 4] = [47, 119, 61, 61]; // "/w=="
     assert(result == expected);
 
-    let result: [u8; 2] = STANDARD_NO_PAD.encode(input);
+    let result: [u8; 2] = STANDARD_NO_PAD.encode_no_pad(input);
     let expected: [u8; 2] = [47, 119]; // "/w"
     assert(result == expected);
 
@@ -354,7 +436,7 @@ fn test_encode_max_byte() {
     let expected: [u8; 4] = [95, 119, 61, 61]; // "_w=="
     assert(result == expected);
 
-    let result: [u8; 2] = URL_SAFE.encode(input);
+    let result: [u8; 2] = URL_SAFE.encode_no_pad(input);
     let expected: [u8; 2] = [95, 119]; // "_w"
     assert(result == expected);
 }
@@ -423,7 +505,7 @@ fn test_encode_multi_chunks() {
         71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
         72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52,
     ];
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = STANDARD_NO_PAD.encode_no_pad(input);
     assert(result == expected);
 }
 
@@ -452,7 +534,7 @@ fn test_encode_url_safe() {
     // test encoding to _ and -
     let input: [u8; 2] = [255, 224];
     let expected: [u8; 3] = [95, 45, 65];
-    let result: [u8; 3] = URL_SAFE.encode(input);
+    let result: [u8; 3] = URL_SAFE.encode_no_pad(input);
     assert(result == expected);
 }
 
@@ -471,7 +553,7 @@ fn test_encode() {
         133, 38, 121, 249, 97, 17, 132, 168, 87, 182, 85,
     ];
 
-    let result: [u8; 43] = STANDARD_NO_PAD.encode(input);
+    let result = STANDARD_NO_PAD.encode_no_pad(input);
     assert(result == expected);
 }
 

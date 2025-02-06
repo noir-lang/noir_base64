@@ -54,7 +54,7 @@ fn encode_and_decode_no_pad() {
         "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
     let base64_encoded: str<118> = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg";
 
-    let encoded: [u8; 118] = BASE64_NO_PAD_ENCODER.encode(input.as_bytes());
+    let encoded: [u8; 118] = BASE64_NO_PAD_ENCODER.encode_no_pad(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
     let decoded: [u8; 88] = BASE64_NO_PAD_DECODER.decode(encoded);
