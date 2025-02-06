@@ -5,6 +5,10 @@ pub global STANDARD_NO_PAD: Base64EncodeBE = Base64EncodeBE::new(false);
 pub global URL_SAFE: Base64EncodeBE = Base64EncodeBE::base64url(false);
 pub global URL_SAFE_WITH_PAD: Base64EncodeBE = Base64EncodeBE::base64url(true);
 
+global CONVERT_MODULO3_TO_PADDING_BYTES: [u32; 3] = [0, 2, 1];
+global PAD_1: [Field; 3] = [0, 1, 1];
+global PAD_2: [Field; 3] = [0, 1, 0];
+
 struct Base64EncodeBE {
     // for some reason, if the lookup table is not defined in a struct, access costs are expensive and ROM tables aren't being used :/
     table: [u8; 64],
@@ -69,14 +73,65 @@ impl Base64EncodeBE {
         result
     }
 
-    pub fn encode2<let InputBytes: u32>(
+    pub fn encode_var_no_pad<let MAX_INPUT_LEN: u32>(
         self,
-        input: [u8; InputBytes],
-    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 2) + ((InputBytes % 3) / 2)] {
-        let num_padding_chars = (((InputBytes % 3) % 2) * 2) + ((InputBytes % 3) / 2);
+        input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2)) + (((MAX_INPUT_LEN % 3) / 2))> {
+        // let num_padding_chars: _ = (((MAX_INPUT_LEN % 3) % 2) * 2) + ((MAX_INPUT_LEN % 3) / 2);
 
-        let mut r: [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 2) + ((InputBytes % 3) / 2)] =
-            [0; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 2) + ((InputBytes % 3) / 2)];
+        // let mut r: [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 2) + ((MAX_INPUT_LEN % 3) / 2)] =
+        //     [0; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 2) + ((MAX_INPUT_LEN % 3) / 2)];
+        // r
+        let mut raw = self.encode_no_pad(input.storage());
+
+        let real_length = input.len();
+        let encoded_length = ((real_length * 8) + 5) / 6;
+
+        let r: BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2)) + (((MAX_INPUT_LEN % 3) / 2))> =
+            BoundedVec::from_parts(raw, encoded_length);
+        r
+    }
+
+    pub fn encode_var<let MAX_INPUT_LEN: u32>(
+        self,
+        input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> {
+        // let num_padding_chars: _ = (((MAX_INPUT_LEN % 3) % 2) * 2) + ((MAX_INPUT_LEN % 3) / 2);
+
+        // let mut r: [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 2) + ((MAX_INPUT_LEN % 3) / 2)] =
+        //     [0; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 2) + ((MAX_INPUT_LEN % 3) / 2)];
+        // r
+        let output_length =
+            ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 2) + ((MAX_INPUT_LEN % 3) / 2);
+        let mut raw = self.encode(input.storage());
+
+        let real_length = input.len();
+        let real_length_mod_3 = real_length % 3;
+        let encoded_length = ((real_length * 8) + 5) / 6;
+
+        let length_check1 = (encoded_length < output_length) as Field;
+        let length_check2 = ((encoded_length + 1) < output_length) as Field;
+        let pad1_null_index = encoded_length as Field * length_check1;
+        let pad2_null_index = (encoded_length as Field + 1) * length_check2;
+        let pad1_null_char = raw[pad1_null_index] as Field;
+        let pad2_null_char = raw[pad2_null_index] as Field;
+        let has_byte1_padding = PAD_1[real_length_mod_3];
+        let has_byte2_padding = PAD_2[real_length_mod_3];
+
+        let first_potential_padding_byte =
+            (BASE64_PADDING_CHAR as Field - pad1_null_char) * has_byte1_padding + pad1_null_char;
+        let second_potential_padding_byte =
+            (BASE64_PADDING_CHAR as Field - pad2_null_char) * has_byte2_padding + pad2_null_char;
+
+        raw[pad1_null_index] = first_potential_padding_byte as u8;
+        raw[pad2_null_index] = second_potential_padding_byte as u8;
+
+        let final_length = encoded_length + CONVERT_MODULO3_TO_PADDING_BYTES[real_length_mod_3];
+        println(
+            f"length = {real_length}, max_input = {MAX_INPUT_LEN} final length = {final_length}, max output = {output_length}",
+        );
+        let r: BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> =
+            BoundedVec::from_parts(raw, final_length);
         r
     }
     /**
@@ -248,97 +303,85 @@ impl Base64EncodeBE {
         }
         result
     }
-
-    /// Take a `BoundedVec` input containing up to `MAX_INPUT_LEN` bytes of data and encode the
-    /// first `input.len()` bytes into Base64.
-    pub fn encode_var<let MAX_INPUT_LEN: u32, let MAX_OUTPUT_LEN: u32>(
-        self,
-        input: BoundedVec<u8, MAX_INPUT_LEN>,
-    ) -> BoundedVec<u8, MAX_OUTPUT_LEN> {
-        // Calculate the number of padding characters and the length of the output without padding
-        let rem = input.len() % 3;
-        let num_padding_chars = if rem == 1 {
-            2
-        } else if rem == 2 {
-            1
-        } else {
-            0
-        };
-
-        // Every 3 chars will be encoded as 4 base64 chars
-        let encoded_length = (input.len() + 2) / 3 * 4; // ceil(input * 4 / 3)
-        let non_padded_output_length = encoded_length - num_padding_chars;
-        assert(
-            MAX_OUTPUT_LEN >= (MAX_INPUT_LEN + 2) / 3 * 4,
-            "maximum output length is too short for the specified maximum input length",
-        );
-
-        let mut result: BoundedVec<u8, MAX_OUTPUT_LEN> = BoundedVec::new();
-
-        let max_chunks =
-            MAX_INPUT_LEN / BYTES_PER_CHUNK + (MAX_INPUT_LEN % BYTES_PER_CHUNK != 0) as u32;
-        let num_chunks =
-            (input.len() / BYTES_PER_CHUNK) + (input.len() % BYTES_PER_CHUNK != 0) as u32;
-
-        if num_chunks > 0 {
-            let final_chunk = num_chunks - 1;
-
-            for i in 0..max_chunks {
-                if (i < final_chunk) {
-                    // pack the bytes into the field element
-                    let mut slice: Field = 0;
-                    for j in 0..BYTES_PER_CHUNK {
-                        slice *= 256;
-                        slice += input.get_unchecked(i * BYTES_PER_CHUNK + j) as Field;
-                    }
-
-                    // extract the 6-bit values from the Field element
-                    let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
-                    for j in 0..BASE64_ELEMENTS_PER_CHUNK {
-                        let base64 = self.get(slice_base64_chunks[j] as Field);
-                        result.push(base64);
-                    }
-                }
-            }
-
-            // process the final chunk, which may require padding
-            let byte_offset = final_chunk * BYTES_PER_CHUNK;
-            let base64_offset = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
-            let bytes_in_final_chunk = input.len() - byte_offset;
-            let num_elements_in_final_chunk = encoded_length - base64_offset;
-
-            // pack the bytes into the field element
-            let mut slice: Field = 0;
-            for j in 0..BYTES_PER_CHUNK {
-                slice *= 256;
-                if (j < bytes_in_final_chunk) {
-                    slice += input.get_unchecked((num_chunks - 1) * BYTES_PER_CHUNK + j) as Field;
-                }
-            }
-
-            // extract the 6-bit values from the Field element
-            let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
-            for i in 0..40 {
-                if (i < num_elements_in_final_chunk & base64_offset + i < non_padded_output_length) {
-                    let base64 = self.get(slice_base64_chunks[i] as Field);
-                    result.push(base64);
-                }
-            }
-
-            if self.pad {
-                // handle padding
-                let rem = input.len() % 3;
-                if (rem == 1) {
-                    result.push(BASE64_PADDING_CHAR);
-                    result.push(BASE64_PADDING_CHAR);
-                } else if (rem == 2) {
-                    result.push(BASE64_PADDING_CHAR);
-                }
-            }
-        }
-
-        result
-    }
+    // /// Take a `BoundedVec` input containing up to `MAX_INPUT_LEN` bytes of data and encode the
+    // /// first `input.len()` bytes into Base64.
+    // pub fn encode_var<let MAX_INPUT_LEN: u32, let MAX_OUTPUT_LEN: u32>(
+    //     self,
+    //     input: BoundedVec<u8, MAX_INPUT_LEN>,
+    // ) -> BoundedVec<u8, MAX_OUTPUT_LEN> {
+    //     // Calculate the number of padding characters and the length of the output without padding
+    //     let rem = input.len() % 3;
+    //     let num_padding_chars = if rem == 1 {
+    //         2
+    //     } else if rem == 2 {
+    //         1
+    //     } else {
+    //         0
+    //     };
+    //     // Every 3 chars will be encoded as 4 base64 chars
+    //     let encoded_length = (input.len() + 2) / 3 * 4; // ceil(input * 4 / 3)
+    //     let non_padded_output_length = encoded_length - num_padding_chars;
+    //     assert(
+    //         MAX_OUTPUT_LEN >= (MAX_INPUT_LEN + 2) / 3 * 4,
+    //         "maximum output length is too short for the specified maximum input length",
+    //     );
+    //     let mut result: BoundedVec<u8, MAX_OUTPUT_LEN> = BoundedVec::new();
+    //     let max_chunks =
+    //         MAX_INPUT_LEN / BYTES_PER_CHUNK + (MAX_INPUT_LEN % BYTES_PER_CHUNK != 0) as u32;
+    //     let num_chunks =
+    //         (input.len() / BYTES_PER_CHUNK) + (input.len() % BYTES_PER_CHUNK != 0) as u32;
+    //     if num_chunks > 0 {
+    //         let final_chunk = num_chunks - 1;
+    //         for i in 0..max_chunks {
+    //             if (i < final_chunk) {
+    //                 // pack the bytes into the field element
+    //                 let mut slice: Field = 0;
+    //                 for j in 0..BYTES_PER_CHUNK {
+    //                     slice *= 256;
+    //                     slice += input.get_unchecked(i * BYTES_PER_CHUNK + j) as Field;
+    //                 }
+    //                 // extract the 6-bit values from the Field element
+    //                 let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
+    //                 for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+    //                     let base64 = self.get(slice_base64_chunks[j] as Field);
+    //                     result.push(base64);
+    //                 }
+    //             }
+    //         }
+    //         // process the final chunk, which may require padding
+    //         let byte_offset = final_chunk * BYTES_PER_CHUNK;
+    //         let base64_offset = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
+    //         let bytes_in_final_chunk = input.len() - byte_offset;
+    //         let num_elements_in_final_chunk = encoded_length - base64_offset;
+    //         // pack the bytes into the field element
+    //         let mut slice: Field = 0;
+    //         for j in 0..BYTES_PER_CHUNK {
+    //             slice *= 256;
+    //             if (j < bytes_in_final_chunk) {
+    //                 slice += input.get_unchecked((num_chunks - 1) * BYTES_PER_CHUNK + j) as Field;
+    //             }
+    //         }
+    //         // extract the 6-bit values from the Field element
+    //         let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
+    //         for i in 0..40 {
+    //             if (i < num_elements_in_final_chunk & base64_offset + i < non_padded_output_length) {
+    //                 let base64 = self.get(slice_base64_chunks[i] as Field);
+    //                 result.push(base64);
+    //             }
+    //         }
+    //         if self.pad {
+    //             // handle padding
+    //             let rem = input.len() % 3;
+    //             if (rem == 1) {
+    //                 result.push(BASE64_PADDING_CHAR);
+    //                 result.push(BASE64_PADDING_CHAR);
+    //             } else if (rem == 2) {
+    //                 result.push(BASE64_PADDING_CHAR);
+    //             }
+    //         }
+    //     }
+    //     result
+    // }
 }
 
 // === TESTS ======================================================================================
@@ -604,21 +647,21 @@ fn test_encode_var_standard_no_pad() {
     // f
     let input: BoundedVec<u8, 3> = BoundedVec::from_array([102]);
     let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 103]);
-    let result = STANDARD_NO_PAD.encode_var(input);
+    let result = STANDARD_NO_PAD.encode_var_no_pad(input);
 
     assert(result == expected);
 
     // fo
     let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111]);
     let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 56]);
-    let result = STANDARD_NO_PAD.encode_var(input);
+    let result = STANDARD_NO_PAD.encode_var_no_pad(input);
 
     assert(result == expected);
 
     // foo
     let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111, 111]);
     let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 57, 118]);
-    let result = STANDARD_NO_PAD.encode_var(input);
+    let result = STANDARD_NO_PAD.encode_var_no_pad(input);
 
     assert(result == expected);
 }
@@ -633,18 +676,18 @@ fn test_encode_var() {
         83, 71, 86, 115, 98, 71, 56, 115, 73, 70, 100, 118, 99, 109, 120, 107, 73, 81, 61, 61,
     ]);
     // base64: "SGVsbG8sIFdvcmxkIQ"
-    let expected_no_pad: BoundedVec<u8, 24> = BoundedVec::from_array([
+    let expected_no_pad: BoundedVec<u8, 22> = BoundedVec::from_array([
         83, 71, 86, 115, 98, 71, 56, 115, 73, 70, 100, 118, 99, 109, 120, 107, 73, 81,
     ]);
 
     // all configurations should give the same encoding
     let result = STANDARD.encode_var(input);
     assert(result == expected);
-    let result = STANDARD_NO_PAD.encode_var(input);
+    let result = STANDARD_NO_PAD.encode_var_no_pad(input);
     assert(result == expected_no_pad);
     let result = URL_SAFE_WITH_PAD.encode_var(input);
     assert(result == expected);
-    let result = URL_SAFE.encode_var(input);
+    let result = URL_SAFE.encode_var_no_pad(input);
     assert(result == expected_no_pad);
 }
 
@@ -672,10 +715,10 @@ fn test_encode_var_multi_chunks() {
     // all configurations should give the same encoding
     let result = STANDARD.encode_var(input);
     assert(result == expected);
-    let result = STANDARD_NO_PAD.encode_var(input);
+    let result = STANDARD_NO_PAD.encode_var_no_pad(input);
     assert(result == expected_no_pad);
     let result = URL_SAFE_WITH_PAD.encode_var(input);
     assert(result == expected);
-    let result = URL_SAFE.encode_var(input);
+    let result = URL_SAFE.encode_var_no_pad(input);
     assert(result == expected_no_pad);
 }
