@@ -8,6 +8,8 @@ use crate::tables::{
     BASE64_DECODE_BE_VAR_TABLE,
 };
 
+/// Decoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
+/// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
 pub mod Base64DecodeBE {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
@@ -22,6 +24,8 @@ pub mod Base64DecodeBE {
     }
 }
 
+/// Decoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
+/// (https://datatracker.ietf.org/doc/html/rfc4648#section-4), but WITHOUT padding
 pub mod Base64DecodeBENoPad {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
@@ -36,20 +40,8 @@ pub mod Base64DecodeBENoPad {
     }
 }
 
-pub mod Base64DecodeBEURLWithPad {
-    pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
-        input: [u8; InputBytes],
-    ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 1, 1>(input)
-    }
-
-    pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
-        input: BoundedVec<u8, MaxInputBytes>,
-    ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1, 1>(input)
-    }
-}
-
+/// Decoder methods that use the URL and Filename Safe Alphabet specified in RFC 4648
+/// https://datatracker.ietf.org/doc/html/rfc4648#section-5
 pub mod Base64DecodeBEUrlSafe {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
@@ -61,6 +53,22 @@ pub mod Base64DecodeBEUrlSafe {
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
         crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0, 1>(input)
+    }
+}
+
+/// Decoder methods that use the URL and Filename Safe Alphabet specified in RFC 4648
+/// https://datatracker.ietf.org/doc/html/rfc4648#section-5, but WITH padding added
+pub mod Base64DecodeBEUrlSafeWithPad {
+    pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
+        input: [u8; InputBytes],
+    ) -> [u8; OutputBytes] {
+        crate::decoder::decode::<InputBytes, OutputBytes, 1, 1>(input)
+    }
+
+    pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
+        input: BoundedVec<u8, MaxInputBytes>,
+    ) -> BoundedVec<u8, MaxOutputBytes> {
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1, 1>(input)
     }
 }
 
@@ -509,7 +517,7 @@ fn test_decode_max_byte() {
     assert(result == expected);
 
     let input: [u8; 4] = [95, 119, 61, 61]; // "_w=="
-    let result: [u8; 1] = Base64DecodeBEURLWithPad::decode(input);
+    let result: [u8; 1] = Base64DecodeBEUrlSafeWithPad::decode(input);
     assert(result == expected);
 
     let input: [u8; 2] = [95, 119]; // "_w"
@@ -554,7 +562,7 @@ fn test_decode_url_safe_with_pad() {
     // test decoding _ and -
     let input: [u8; 4] = [95, 45, 65, 61];
     let expected: [u8; 2] = [255, 224];
-    let result: [u8; 2] = Base64DecodeBEURLWithPad::decode(input);
+    let result: [u8; 2] = Base64DecodeBEUrlSafeWithPad::decode(input);
 
     assert(result == expected);
 }
@@ -597,7 +605,7 @@ fn test_decode_ascii() {
     assert(result == expected);
     let result: [u8; 12] = Base64DecodeBENoPad::decode(input);
     assert(result == expected);
-    let result: [u8; 12] = Base64DecodeBEURLWithPad::decode(input);
+    let result: [u8; 12] = Base64DecodeBEUrlSafeWithPad::decode(input);
     assert(result == expected);
     let result: [u8; 12] = Base64DecodeBEUrlSafe::decode(input);
     assert(result == expected);
@@ -621,7 +629,7 @@ fn test_decode_utf8() {
     assert(result == expected);
     let result: [u8; 27] = Base64DecodeBENoPad::decode(input);
     assert(result == expected);
-    let result: [u8; 27] = Base64DecodeBEURLWithPad::decode(input);
+    let result: [u8; 27] = Base64DecodeBEUrlSafeWithPad::decode(input);
     assert(result == expected);
     let result: [u8; 27] = Base64DecodeBEUrlSafe::decode(input);
     assert(result == expected);
@@ -761,7 +769,7 @@ fn test_decode_var() {
     let result = Base64DecodeBENoPad::decode_var(input_no_pad);
     println(f"result {result}, expected {expected}");
     assert(result == expected);
-    let result = Base64DecodeBEURLWithPad::decode_var(input);
+    let result = Base64DecodeBEUrlSafeWithPad::decode_var(input);
     assert(result == expected);
     let result = Base64DecodeBEUrlSafe::decode_var(input_no_pad);
     assert(result == expected);
@@ -793,7 +801,7 @@ fn test_decode_var_multi_chunks() {
     assert(result == expected);
     let result = Base64DecodeBENoPad::decode_var(input_no_pad);
     assert(result == expected);
-    let result = Base64DecodeBEURLWithPad::decode_var(input);
+    let result = Base64DecodeBEUrlSafeWithPad::decode_var(input);
     assert(result == expected);
     let result = Base64DecodeBEUrlSafe::decode_var(input_no_pad);
     assert(result == expected);

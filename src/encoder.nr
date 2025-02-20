@@ -11,14 +11,15 @@ global CONVERT_MODULO3_TO_PADDING_BYTES: [u32; 3] = [0, 2, 1];
 global PAD_1: [Field; 3] = [0, 1, 1];
 global PAD_2: [Field; 3] = [0, 1, 0];
 
-// Encoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
-// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
+/// Encoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
+/// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
 pub mod Base64EncodeBE {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] {
         crate::encoder::encode::<InputBytes, 0, 1>(input)
     }
+
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> {
@@ -26,8 +27,8 @@ pub mod Base64EncodeBE {
     }
 }
 
-// Encoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
-// (https://datatracker.ietf.org/doc/html/rfc4648#section-4), but WITHOUT padding
+/// Encoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
+/// (https://datatracker.ietf.org/doc/html/rfc4648#section-4), but WITHOUT padding
 pub mod Base64EncodeBENoPad {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
@@ -42,8 +43,8 @@ pub mod Base64EncodeBENoPad {
     }
 }
 
-// Encoder methods that use the URL and Filename Safe Alphabet specified in RFC 4648
-// https://datatracker.ietf.org/doc/html/rfc4648#section-5
+/// Encoder methods that use the URL and Filename Safe Alphabet specified in RFC 4648
+/// https://datatracker.ietf.org/doc/html/rfc4648#section-5
 pub mod Base64EncodeBEUrlSafe {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
@@ -58,8 +59,8 @@ pub mod Base64EncodeBEUrlSafe {
     }
 }
 
-// Encoder methods that use the URL and Filename Safe Alphabet specified in RFC 4648
-// https://datatracker.ietf.org/doc/html/rfc4648#section-5, but WITH padding added
+/// Encoder methods that use the URL and Filename Safe Alphabet specified in RFC 4648
+/// https://datatracker.ietf.org/doc/html/rfc4648#section-5, but WITH padding added
 pub mod Base64EncodeBEUrlSafeWithPad {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
