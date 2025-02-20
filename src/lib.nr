@@ -20,17 +20,16 @@ mod benchmarks;
 mod tables;
 mod boundary_check;
 pub use encoder::{
-    Base64EncodeBE, Base64EncodeBENoPad,
-    // STANDARD as BASE64_ENCODER, STANDARD_NO_PAD as BASE64_NO_PAD_ENCODER,
-    // URL_SAFE as BASE64_URL_ENCODER, URL_SAFE_WITH_PAD as BASE64_URL_WITH_PAD_ENCODER,
+    Base64EncodeBE as BASE64_ENCODER, Base64EncodeBENoPad as BASE64_NO_PAD_ENCODER,
+    Base64EncodeBEUrlSafe as BASE64_URL_ENCODER,
+    Base64EncodeBEUrlSafeWithPad as BASE64_URL_WITH_PAD_ENCODER,
 };
 
 mod decoder;
 pub use decoder::{
     Base64DecodeBE as BASE64_DECODER, Base64DecodeBENoPad as BASE64_NO_PAD_DECODER,
-    Base64DecodeBEUrlSafe as URL_SAFE, Base64DecodeBEURLWithPad as URL_SAFE_WITH_PAD,
-    // STANDARD as BASE64_DECODER, STANDARD_NO_PAD as BASE64_NO_PAD_DECODER,
-    // URL_SAFE as BASE64_URL_DECODER, URL_SAFE_WITH_PAD as BASE64_URL_WITH_PAD_DECODER,
+    Base64DecodeBEUrlSafe as BASE64_URL_DECODER,
+    Base64DecodeBEURLWithPad as BASE64_URL_WITH_PAD_DECODER,
 };
 
 pub(crate) mod defaults {
@@ -50,7 +49,7 @@ fn encode_and_decode() {
         "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
     let base64_encoded = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg==";
 
-    let encoded: [u8; 120] = Base64EncodeBE::encode(input.as_bytes());
+    let encoded: [u8; 120] = BASE64_ENCODER::encode(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
     let decoded: [u8; 88] = BASE64_DECODER::decode(encoded);
@@ -63,7 +62,7 @@ fn encode_and_decode_no_pad() {
         "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
     let base64_encoded: str<118> = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg";
 
-    let encoded: [u8; 118] = Base64EncodeBENoPad::encode(input.as_bytes());
+    let encoded: [u8; 118] = BASE64_NO_PAD_ENCODER::encode(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
     let decoded: [u8; 88] = BASE64_NO_PAD_DECODER::decode(encoded);
