@@ -1,3 +1,5 @@
 target
 .DS_Store
 .vscode
+export
+gates_report.json
