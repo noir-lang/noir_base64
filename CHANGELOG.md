@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/noir-lang/noir_base64/compare/v0.3.1...v0.4.0) (2025-02-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* vector optimizations ([#39](https://github.com/noir-lang/noir_base64/issues/39))
+
+### Features
+
+* Vector optimizations ([#39](https://github.com/noir-lang/noir_base64/issues/39)) ([453401f](https://github.com/noir-lang/noir_base64/commit/453401f4c6c405d46eb9f3000559e32c0445274e))
+
 ## [0.3.1](https://github.com/noir-lang/noir_base64/compare/v0.3.0...v0.3.1) (2024-12-04)
 
 
