@@ -1,271 +1,321 @@
-use super::defaults::BASE64_PADDING_CHAR;
+use super::defaults::{BASE64_ELEMENTS_PER_CHUNK, BASE64_PADDING_CHAR, BYTES_PER_CHUNK};
 
-/// Standard base64 encoder with padding.
-pub global STANDARD: Base64EncodeBE = Base64EncodeBE::new(true);
+use crate::tables::{
+    BASE64_ENCODE_BE_TABLE, BASE64_ENCODE_BE_VAR_TABLE, BASE64URL_ENCODE_BE_TABLE,
+    BASE64URL_ENCODE_BE_VAR_TABLE,
+};
 
-/// Standard base64 encoder without padding.
-pub global STANDARD_NO_PAD: Base64EncodeBE = Base64EncodeBE::new(false);
+pub use crate::boundary_check::boundary_check;
 
-/// URL and Filename Safe base64 encoder without padding.
-pub global URL_SAFE: Base64EncodeBE = Base64EncodeBE::base64url(false);
+global CONVERT_MODULO3_TO_PADDING_BYTES: [u32; 3] = [0, 2, 1];
+global PAD_1: [Field; 3] = [0, 1, 1];
+global PAD_2: [Field; 3] = [0, 1, 0];
 
-/// URL and Filename Safe base64 encoder with padding.
-pub global URL_SAFE_WITH_PAD: Base64EncodeBE = Base64EncodeBE::base64url(true);
+/// Encoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
+/// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
+pub mod Base64EncodeBE {
+    pub fn encode<let InputBytes: u32>(
+        input: [u8; InputBytes],
+    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] {
+        crate::encoder::encode::<InputBytes, 0, 1>(input)
+    }
 
-/// Base 64 encoder for big-endian byte arrays.
-///
-/// > Note: If the lookup table is not defined in a struct, access costs are expensive and ROM
-/// > tables aren't being used.
-struct Base64EncodeBE {
-    /// The base64 lookup table.
-    table: [u8; 64],
-    /// Whether to pad the output with '=' characters.
-    pad: bool,
+    pub fn encode_var<let MAX_INPUT_LEN: u32>(
+        input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> {
+        crate::encoder::encode_var::<_, 0, 1>(input)
+    }
 }
 
-impl Base64EncodeBE {
-    /// Creates a new encoder that uses the standard Base64 Alphabet (base64) specified in RFC 4648
-    /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4).
-    ///
-    /// The alphabet values are standard UTF-8 (and ASCII) byte encodings so the index in the table
-    /// is the 6-bit Base64 value, and the value at that index is the UTF-8 encoding of that value.
-    ///
-    /// ## Value Parameters
-    ///
-    /// - `pad`: Whether to pad the output with '=' characters.
-    ///
-    /// ## Returns
-    ///
-    /// The Base64 encoder instance.
-    ///
-    /// ## Usage
-    ///
-    /// ```nr
-    /// let encoder = Base64EncodeBE::new(true);
-    /// ```
-    fn new(pad: bool) -> Self {
-        Base64EncodeBE {
-            table: [
-                65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85,
-                86, 87, 88, 89, 90, // 0-25 (A-Z)
-                97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113,
-                114, 115, 116, 117, 118, 119, 120, 121, 122, // 26-51 (a-z)
-                48, 49, 50, 51, 52, 53, 54, 55, 56, 57, // 0-9
-                43, // +
-                47, // /
-            ],
-            pad,
-        }
-    }
-
-    /// Creates a new encoder that uses the URL and Filename Safe Alphabet specified in RFC 4648
-    /// (https://datatracker.ietf.org/doc/html/rfc4648#section-5).
-    ///
-    /// ## Value Parameters
-    ///
-    /// - `pad`: Whether to pad the output with '=' characters.
-    ///
-    /// ## Returns
-    ///
-    /// The Base64 encoder instance.
-    ///
-    /// ## Usage
-    ///
-    /// ```nr
-    /// let encoder = Base64EncodeBE::base64url(true);
-    /// ```
-    fn base64url(pad: bool) -> Self {
-        Base64EncodeBE {
-            table: [
-                65, 66, 67, 68, 69, 70, 71, 72, // A, B, C, D, E, F, G, H
-                73, 74, 75, 76, 77, 78, 79, 80, // I, J, K, L, M, N, O, P
-                81, 82, 83, 84, 85, 86, 87, 88, // Q, R, S, T, U, V, W, X
-                89, 90, 97, 98, 99, 100, 101, 102, // Y, Z, a, b, c, d, e, f
-                103, 104, 105, 106, 107, 108, 109, 110, // g, h, i, j, k, l, m, n
-                111, 112, 113, 114, 115, 116, 117, 118, // o, p, q, r, s, t, u, v
-                119, 120, 121, 122, 48, 49, 50, 51, // w, x, y, z, 0, 1, 2, 3
-                52, 53, 54, 55, 56, 57, 45, 95, // 4, 5, 6, 7, 8, 9, -, _
-            ],
-            pad,
-        }
-    }
-
-    /// Gets the lookup table value at a given index.
-    ///
-    /// ## Value Parameters
-    ///
-    /// - `idx`: The index in the lookup table.
-    ///
-    /// ## Returns
-    ///
-    /// The byte value from the lookup table.
-    ///
-    /// ## Usage
-    ///
-    /// ```nr
-    /// let encoder = Base64EncodeBE::new(true);
-    /// ```
-    fn get(self, idx: Field) -> u8 {
-        self.table[idx]
-    }
-
-    /// Converts an array of ASCII values into base64 values.
-    ///
-    /// ## Type Parameters
-    ///
-    /// - `InputElements`: The number of elements in the input array.
-    ///
-    /// ## Value Parameters
-    ///
-    /// - `self`: The Base64 encoder instance.
-    /// - `input`: The input array of ASCII values.
-    ///
-    /// ## Returns
-    ///
-    /// The array of base64 values.
-    ///
-    /// ## Usage
-    ///
-    /// ```nr
-    /// let encoded = Base64EncodeBE::new(true).encode_elements("asdf".as_bytes());
-    /// ```
-    fn encode_elements<let InputElements: u32>(
-        self,
-        input: [u8; InputElements],
-    ) -> [u8; InputElements] {
-        let mut result: [u8; InputElements] = [0; InputElements];
-
-        for i in 0..InputElements {
-            result[i] = self.get(input[i] as Field);
-        }
-        result
-    }
-
-    /// Converts an array of packed base64 values into ASCII values.
-    ///
-    /// ## Type Parameters
-    ///
-    /// - `InputElements`: The number of elements in the input array.
-    /// - `OutputElements`: The number of elements in the output array.
-    ///
-    /// ## Value Parameters
-    ///
-    /// - `self`: The Base64 encoder instance.
-    /// - `input`: The input array of packed base64 values.
-    ///
-    /// ## Constraints
-    ///
-    /// - input and output lengths are correct, including padding.
-    ///
-    /// ## Returns
-    ///
-    /// The array of ASCII values.
-    ///
-    /// ## Usage
-    ///
-    /// ```nr
-    /// let decoded = Base64EncodeBE::new(true).encode("asdf".as_bytes());
-    /// ```
-    pub fn encode<let InputBytes: u32, let OutputElements: u32>(
-        self,
+/// Encoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
+/// (https://datatracker.ietf.org/doc/html/rfc4648#section-4), but WITHOUT padding
+pub mod Base64EncodeBENoPad {
+    pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
-    ) -> [u8; OutputElements] {
-        // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
-        // we pack 40 base64 values into a field element and convert into 30 bytes
-        // TODO: once we support arithmetic ops on generics, derive OutputBytes from InputBytes
-        // Calculate the number of padding characters and the length of the output without padding
-        let rem = InputBytes % 3;
-        let num_padding_chars = if rem == 1 {
+    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2)) + (((InputBytes % 3) / 2))] {
+        crate::encoder::encode::<InputBytes, 0, 0>(input)
+    }
+
+    pub fn encode_var<let MAX_INPUT_LEN: u32>(
+        input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, (((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2)) + (((MAX_INPUT_LEN % 3) / 2)))> {
+        crate::encoder::encode_var::<_, 0, 0>(input)
+    }
+}
+
+/// Encoder methods that use the URL and Filename Safe Alphabet specified in RFC 4648
+/// https://datatracker.ietf.org/doc/html/rfc4648#section-5
+pub mod Base64EncodeBEUrlSafe {
+    pub fn encode<let InputBytes: u32>(
+        input: [u8; InputBytes],
+    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2)) + (((InputBytes % 3) / 2))] {
+        crate::encoder::encode::<_, 1, 0>(input)
+    }
+
+    pub fn encode_var<let MAX_INPUT_LEN: u32>(
+        input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, (((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2)) + (((MAX_INPUT_LEN % 3) / 2)))> {
+        crate::encoder::encode_var::<_, 1, 0>(input)
+    }
+}
+
+/// Encoder methods that use the URL and Filename Safe Alphabet specified in RFC 4648
+/// https://datatracker.ietf.org/doc/html/rfc4648#section-5, but WITH padding added
+pub mod Base64EncodeBEUrlSafeWithPad {
+    pub fn encode<let InputBytes: u32>(
+        input: [u8; InputBytes],
+    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] {
+        crate::encoder::encode::<_, 1, 1>(input)
+    }
+    pub fn encode_var<let MAX_INPUT_LEN: u32>(
+        input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> {
+        crate::encoder::encode_var::<_, 1, 1>(input)
+    }
+}
+
+/**
+ * @brief Take an array of ASCII values and convert into base64 values
+ * @tparam InputElements: The size of the array being encoded
+ * @tparam UseUrlTable: are we encoding using the URL and Filename Safe Alphabet, or standard Base64 Alphabet? 
+ **/
+fn encode_elements<let InputElements: u32, let UseUrlTable: u1>(
+    input: [u8; InputElements],
+) -> [u8; InputElements] {
+    let mut result: [u8; InputElements] = [0; InputElements];
+
+    for i in 0..InputElements {
+        let token: u8 = if UseUrlTable == 1 {
+            BASE64URL_ENCODE_BE_TABLE[input[i]]
+        } else {
+            BASE64_ENCODE_BE_TABLE[input[i]]
+        };
+        result[i] = token as u8;
+    }
+
+    result
+}
+
+/**
+ * @brief Encode a variable-length ASCII string into Base64 values
+ **/
+fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
+    input: BoundedVec<u8, MAX_INPUT_LEN>,
+    ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> {
+    assert((HasPadding == 0) | (HasPadding == 1), "invalid HasPadding parameter");
+    // The max number of output Base64 values can be derived from the max input size
+    let mut result_arr: [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] = [
+        0; ((MAX_INPUT_LEN * 8) / 6)
+            + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2))
+            + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))
+    ];
+
+    // Note: is this correct?
+    let output_length = ((MAX_INPUT_LEN * 8) / 6)
+        + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2))
+        + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding));
+
+    // Step 1: convert the input into six-bit chunks. We can map each chunk into Base64 values.
+    let raw: [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] =
+        crate::encoder::split_into_six_bit_chunks::<_, _, 1>(input.storage());
+
+    let real_length = input.len();
+    // The input length modulo 3 can be used to determine the number of padding bytes
+    let real_length_mod_3 = if HasPadding == 1 { real_length % 3 } else { 0 };
+    // encoded_length = the number of Base64 values minus padding
+    let encoded_length = ((real_length * 8) + 5) / 6;
+    let final_length = encoded_length
+        + if HasPadding == 1 {
+            CONVERT_MODULO3_TO_PADDING_BYTES[real_length_mod_3]
+        } else {
+            0
+        };
+
+    // Get an array of Field elements where boundary_flags[i] = 0 if i < encoded_length, otherwise i = 1.
+    // We use this array to determine if the result array should contain a valid Base64 encoded value, 0 or if an error state has been reached
+    let boundary_flags: [Field; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] =
+        boundary_check(encoded_length);
+
+    // Using 2 lookups is slightly cheaper than figuring out if the 1st/2nd padding byte is set from the padding length param... I think?
+    let has_first_padding_byte = if HasPadding == 1 {
+        PAD_1[real_length_mod_3]
+    } else {
+        0
+    };
+    let has_second_padding_byte = if HasPadding == 1 {
+        PAD_2[real_length_mod_3]
+    } else {
+        0
+    };
+
+    // If we have actual data to iterate through, populate the 1st result entry with the base64 encoding of `raw[0]`.
+    // Note: if `boundary_flags[0] = 1`, the `BASE64_ENCODE_BE_VAR_TABLE` lookup will output 0.
+    // Note: `MAX_INPUT_LEN` is known at compile time so this `if` statement should not incur constraints.
+    if MAX_INPUT_LEN > 0 {
+        result_arr[0] = BASE64_ENCODE_BE_VAR_TABLE[raw[0] as Field + boundary_flags[0] * 64] as u8;
+    }
+
+    let mut previous_was_first_padding_byte = 0;
+    for i in 1..output_length {
+        let exceed_length = boundary_flags[i];
+        // hit_limit = we are at the first location where a padding Base64 character *could* be enerated
+
+        let mut encoding_index: Field = 0;
+
+        if HasPadding == 1 {
+            let hit_limit: Field = (1 - boundary_flags[i - 1]) * boundary_flags[i];
+            // We need to write a padding byte if `i == encoding_length` and `has_first_padding_byte == 1`
+            let write_first_padding_byte: Field = hit_limit * has_first_padding_byte;
+            // We need to write a padding byte if `i == encoding_length + 1` and `has_second_padding_byte == 1`
+            let write_second_padding_byte =
+                previous_was_first_padding_byte * has_second_padding_byte;
+
+            // Look up the encoded Base64 value given an input 6-bit chunk.
+            // We have 2 edge cases that we need to handle efficiently (writing padding bytes or we have exceeded the input length)
+            // Instead of expensive conditional logic we apply lookup tables as a quasi state machine to handle these edge cases.
+            // CASE 1: `exceed_length = 0`, `write_first_padding_byte = 0`, `write_second_padding_byte = 0`
+            //      outcome: we map the 6-bit input value into a Base64 encoding
+            // CASE 2: `exceed_length = 1` AND `write_first_padding_byte = 0` AND `write_second_padding_byte = 0`
+            //      outcome: if `raw[i] = 0`, the returned value is 0. All other inputs for `raw[i]` return an error state
+            // CASE 3: `exceed_length = 1` AND ()`write_first_padding_byte = 1` OR `write_second_padding_byte = 1`)
+            //      outcome: if `raw[i] = 0`, the returned value is BASE64_PADDING_CHAR. All other inputs for `raw[i]` return an error state
+            // Note: due to how they are constructed, it is not possible for both `write_first_padding_byte` and `write_second_padding_byte` to equal 1.
+            //       Similarly, it is not possible for `exceed_length = 0` and either of `write_first_padding_byte` or `write_second_padding_byte` to equal 1.
+            encoding_index = raw[i] as Field
+                + (exceed_length + write_first_padding_byte + write_second_padding_byte) * 64;
+            previous_was_first_padding_byte = write_first_padding_byte;
+        } else {
+            // We have 2 edge cases that we need to handle efficiently (writing padding bytes or we have exceeded the input length)
+            // Instead of expensive conditional logic we apply lookup tables as a quasi state machine to handle these edge cases.
+            // CASE 1: `exceed_length = 0`
+            //      outcome: we map the 6-bit input value into a Base64 encoding
+            // CASE 2: `exceed_length = 1`
+            //      outcome: if `raw[i] = 0`, the returned value is 0. All other inputs for `raw[i]` return an error state
+
+            encoding_index = raw[i] as Field + (exceed_length * 64);
+        }
+
+        // Note: this `if` condition is known at compile time so should not incur additional constraints
+        let token: u8 = if UseURLTable == 1 {
+            BASE64_ENCODE_BE_VAR_TABLE[encoding_index]
+        } else {
+            BASE64URL_ENCODE_BE_VAR_TABLE[encoding_index]
+        };
+        (token as Field).assert_max_bit_size::<7>();
+        result_arr[i] = token;
+    }
+
+    // we can use `from_parts_unchecked` here because the table BASE64_ENCODE_BE_VAR_TABLE (and it's URL equivalent)
+    // will produce an error if a nonzero input is given past `final_length`
+    let mut r: BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> =
+        BoundedVec::from_parts_unchecked(result_arr, final_length);
+
+    r
+}
+
+/**
+ * @brief Take an array of ASCII bytes and convert into an array of six-bit chunks
+ **/
+fn split_into_six_bit_chunks<let InputBytes: u32, let OutputElements: u32, let HasPadding: u32>(
+    input: [u8; InputBytes],
+) -> [u8; OutputElements] {
+    // Calculate the number of padding characters and the length of the output without padding
+
+    // input bytes modulo 3 . e.g.
+
+    // input = 5 implies 1 padding char = 40 bits of data = 6 base64 vals + 2 bits
+    // 1 is padding so we have 5 base64 vals
+    let rem = InputBytes % 3;
+    let num_padding_chars = if HasPadding == 1 {
+        if rem == 1 {
             2
         } else if rem == 2 {
             1
         } else {
             0
-        };
-        let non_padded_output_length = OutputElements - num_padding_chars;
-
-        // Assert that the output length is correct
-        // Every 3 chars will be encoded as 4 base64 chars
-        let encoded_length = (InputBytes + 2) / 3 * 4; // ceil(input * 4 / 3)
-        if self.pad {
-            assert(
-                encoded_length == OutputElements,
-                f"EncodeError: invalid output length. Expected {encoded_length} output elements, but got {OutputElements}.",
-            );
-        } else {
-            assert(
-                encoded_length - num_padding_chars == OutputElements,
-                f"EncodeError: invalid output length. Expected {encoded_length} output elements, but got {OutputElements}.",
-            );
         }
+    } else {
+        0
+    };
 
-        let mut result: [u8; OutputElements] = [0; OutputElements];
+    let mut result: [u8; OutputElements] = [0; OutputElements];
 
-        let BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
-        let BYTES_PER_CHUNK: u32 = 30;
-        let num_chunks =
-            (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
+    let num_chunks = (InputBytes / BYTES_PER_CHUNK) + (InputBytes % BYTES_PER_CHUNK != 0) as u32;
 
-        if num_chunks > 0 {
-            let final_chunk = num_chunks - 1;
+    if num_chunks > 0 {
+        let final_chunk = num_chunks - 1;
 
-            for i in 0..final_chunk {
-                // pack the bytes into the field element
-                let mut slice: Field = 0;
-                for j in 0..BYTES_PER_CHUNK {
-                    slice *= 256;
-                    slice += input[i * BYTES_PER_CHUNK + j] as Field;
-                }
-
-                // extract the 6-bit values from the Field element
-                let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
-                for j in 0..BASE64_ELEMENTS_PER_CHUNK {
-                    result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
-                }
-            }
-
-            // process the final chunk, which may require padding
-            let byte_offset = final_chunk * BYTES_PER_CHUNK;
-            let base64_offset = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
-            let bytes_in_final_chunk = InputBytes - byte_offset;
-            let num_elements_in_final_chunk = OutputElements - base64_offset;
-
+        for i in 0..final_chunk {
             // pack the bytes into the field element
             let mut slice: Field = 0;
-            for j in 0..bytes_in_final_chunk {
+            for j in 0..BYTES_PER_CHUNK {
                 slice *= 256;
-                slice += input[(num_chunks - 1) * BYTES_PER_CHUNK + j] as Field;
+                slice += input[i * BYTES_PER_CHUNK + j] as Field;
             }
-            for _ in bytes_in_final_chunk..BYTES_PER_CHUNK {
-                slice *= 256;
-            }
-
-            // TODO: check is it cheaper to use a constant value in `to_be_bytes` or can we use `bytes_in_final_chunk`?
             // extract the 6-bit values from the Field element
-            let slice_base64_chunks: [u8; 40] = slice.to_be_radix(64);
-            for i in 0..num_elements_in_final_chunk {
-                // If padding is enabled, we can skip setting the last `non_padded_output_length` chars
-                if (!self.pad | base64_offset + i < non_padded_output_length) {
-                    result[base64_offset + i] = slice_base64_chunks[i];
-                }
-            }
-
-            result = self.encode_elements(result);
-
-            if self.pad {
-                // handle padding
-                let rem = InputBytes % 3;
-                if (rem == 1) {
-                    result[OutputElements - 1] = BASE64_PADDING_CHAR;
-                    result[OutputElements - 2] = BASE64_PADDING_CHAR;
-                } else if (rem == 2) {
-                    result[OutputElements - 1] = BASE64_PADDING_CHAR;
-                }
+            let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = slice.to_be_radix(64);
+            for j in 0..BASE64_ELEMENTS_PER_CHUNK {
+                result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
             }
         }
 
-        result
+        // process the final chunk, which may require padding
+        let byte_offset = final_chunk * BYTES_PER_CHUNK;
+        let base64_offset = final_chunk * BASE64_ELEMENTS_PER_CHUNK;
+        let bytes_in_final_chunk = InputBytes - byte_offset;
+        let num_elements_in_final_chunk = OutputElements - base64_offset;
+
+        // pack the bytes into the field element
+        let mut slice: Field = 0;
+        for j in 0..bytes_in_final_chunk {
+            slice *= 256;
+            slice += input[(num_chunks - 1) * BYTES_PER_CHUNK + j] as Field;
+        }
+        for _ in bytes_in_final_chunk..BYTES_PER_CHUNK {
+            slice *= 256;
+        }
+
+        // extract the 6-bit values from the Field element
+        let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = slice.to_be_radix(64);
+        for i in 0..num_elements_in_final_chunk {
+            // If padding is enabled, we can skip setting the last `non_padded_output_length` chars
+            // N.B. if statement is compile time so shouldn't add c onstraints
+            if HasPadding == 1 {
+                let non_padded_output_length = OutputElements - num_padding_chars;
+                if (base64_offset + i < non_padded_output_length) {
+                    result[base64_offset + i] = slice_base64_chunks[i];
+                }
+            } else {
+                result[base64_offset + i] = slice_base64_chunks[i];
+            }
+        }
     }
+
+    result
+}
+
+fn encode<let InputBytes: u32, let UseUrlTable: u1, let UsePadding: u32>(
+    input: [u8; InputBytes],
+    ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * (1 + UsePadding * 2)) + (((InputBytes % 3) / 2) * (1 + UsePadding))] {
+    assert((UsePadding == 0 as u32) | (UsePadding == 1 as u32), "UsePadding must be 0 or 1");
+    let mut result = crate::encoder::encode_elements::<_, UseUrlTable>(
+        crate::encoder::split_into_six_bit_chunks::<_, _, UsePadding>(input),
+    );
+    // this relationship should be evaluated at compile time
+    let OutputElements = ((InputBytes * 8) / 6)
+        + (((InputBytes % 3) % 2) * (1 + UsePadding * 2))
+        + (((InputBytes % 3) / 2) * (1 + UsePadding));
+    if UsePadding == 1 {
+        // handle padding
+        let rem = InputBytes % 3;
+        if (rem == 1) {
+            result[OutputElements - 1] = BASE64_PADDING_CHAR;
+            result[OutputElements - 2] = BASE64_PADDING_CHAR;
+        } else if (rem == 2) {
+            result[OutputElements - 1] = BASE64_PADDING_CHAR;
+        }
+    }
+    result
 }
 
 // === TESTS ======================================================================================
@@ -285,7 +335,7 @@ fn test_encode_elements() {
         22, 19, 36, 0, 33, 18, 25, 57, 62, 22, 4, 17, 33, 10, 33, 23, 45, 37, 20,
     ];
 
-    let ascii_result = STANDARD.encode_elements(input);
+    let ascii_result = crate::encoder::encode_elements::<_, 0>(input);
 
     assert(ascii_result == ascii_expected);
 }
@@ -293,7 +343,7 @@ fn test_encode_elements() {
 #[test]
 fn test_encode_empty() {
     let input: [u8; 0] = [];
-    let result = STANDARD.encode(input);
+    let result = Base64EncodeBE::encode(input);
     let expected: [u8; 0] = [];
 
     assert(result == expected);
@@ -304,21 +354,21 @@ fn test_encode_padding() {
     // f
     let input: [u8; 1] = [102];
     let expected: [u8; 4] = [90, 103, 61, 61];
-    let result = STANDARD.encode(input);
+    let result = Base64EncodeBE::encode(input);
 
     assert(result == expected);
 
     // fo
     let input: [u8; 2] = [102, 111];
     let expected: [u8; 4] = [90, 109, 56, 61];
-    let result = STANDARD.encode(input);
+    let result = Base64EncodeBE::encode(input);
 
     assert(result == expected);
 
     // foo
     let input: [u8; 3] = [102, 111, 111];
     let expected: [u8; 4] = [90, 109, 57, 118];
-    let result = STANDARD.encode(input);
+    let result = Base64EncodeBE::encode(input);
 
     assert(result == expected);
 }
@@ -328,21 +378,21 @@ fn test_encode_standard_no_pad() {
     // f
     let input: [u8; 1] = [102];
     let expected: [u8; 2] = [90, 103];
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = Base64EncodeBENoPad::encode(input);
 
     assert(result == expected);
 
     // fo
     let input: [u8; 2] = [102, 111];
     let expected: [u8; 3] = [90, 109, 56];
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = Base64EncodeBENoPad::encode(input);
 
     assert(result == expected);
 
     // foo
     let input: [u8; 3] = [102, 111, 111];
     let expected: [u8; 4] = [90, 109, 57, 118];
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = Base64EncodeBENoPad::encode(input);
 
     assert(result == expected);
 }
@@ -351,19 +401,19 @@ fn test_encode_standard_no_pad() {
 fn test_encode_max_byte() {
     let input: [u8; 1] = [255];
 
-    let result: [u8; 4] = STANDARD.encode(input);
+    let result: [u8; 4] = Base64EncodeBE::encode(input);
     let expected: [u8; 4] = [47, 119, 61, 61]; // "/w=="
     assert(result == expected);
 
-    let result: [u8; 2] = STANDARD_NO_PAD.encode(input);
+    let result: [u8; 2] = Base64EncodeBENoPad::encode(input);
     let expected: [u8; 2] = [47, 119]; // "/w"
     assert(result == expected);
 
-    let result: [u8; 4] = URL_SAFE_WITH_PAD.encode(input);
+    let result: [u8; 4] = Base64EncodeBEUrlSafeWithPad::encode(input);
     let expected: [u8; 4] = [95, 119, 61, 61]; // "_w=="
     assert(result == expected);
 
-    let result: [u8; 2] = URL_SAFE.encode(input);
+    let result: [u8; 2] = Base64EncodeBEUrlSafe::encode(input);
     let expected: [u8; 2] = [95, 119]; // "_w"
     assert(result == expected);
 }
@@ -376,13 +426,13 @@ fn test_encode_ascii() {
     let expected: [u8; 16] = [83, 71, 86, 115, 98, 71, 56, 103, 86, 50, 57, 121, 98, 71, 81, 104];
 
     // all configurations should give the same encoding
-    let result = STANDARD.encode(input);
+    let result = Base64EncodeBE::encode(input);
     assert(result == expected);
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = Base64EncodeBENoPad::encode(input);
     assert(result == expected);
-    let result = URL_SAFE_WITH_PAD.encode(input);
+    let result = Base64EncodeBEUrlSafeWithPad::encode(input);
     assert(result == expected);
-    let result = URL_SAFE.encode(input);
+    let result = Base64EncodeBEUrlSafeWithPad::encode(input);
     assert(result == expected);
 }
 
@@ -400,106 +450,39 @@ fn test_encode_utf8() {
     ];
 
     // all configurations should give the same encoding
-    let result = STANDARD.encode(input);
+    let result = Base64EncodeBE::encode(input);
     assert(result == expected);
-    let result = STANDARD_NO_PAD.encode(input);
+    let result = Base64EncodeBENoPad::encode(input);
     assert(result == expected);
-    let result = URL_SAFE_WITH_PAD.encode(input);
+    let result = Base64EncodeBEUrlSafeWithPad::encode(input);
     assert(result == expected);
-    let result = URL_SAFE.encode(input);
+    let result = Base64EncodeBEUrlSafeWithPad::encode(input);
     assert(result == expected);
 }
 
 #[test]
 fn test_encode_multi_chunks() {
-    let input_str = "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox. Zany quilters fabricate 9 cozy blankets, as 3 jovial wizards expertly mix 5 potent elixirs. Bright neon signs flash \"OPEN 24/7\" in the misty night air, illuminating 8 vintage cars parked along Main Street. A gentle breeze carries the aroma of fresh coffee and warm cinnamon rolls from Joe's Diner, enticing 6 sleepy truckers to stop for a late-night snack. Meanwhile, 11 mischievous kittens playfully chase a ball of yarn across Mrs. Johnson's porch, their antics observed by 2 wise old owls perched on a nearby oak tree.";
+    // "The quick brown fox jumps over the lazy dog."
+    let input: [u8; 44] = [
+        84, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98, 114, 111, 119, 110, 32, 102, 111, 120, 32,
+        106, 117, 109, 112, 115, 32, 111, 118, 101, 114, 32, 116, 104, 101, 32, 108, 97, 122, 121,
+        32, 100, 111, 103, 46,
+    ];
 
-    let result: [u8; 816] = STANDARD.encode(input_str.as_bytes());
-    let expected: [u8; 816] = [
+    let expected: [u8; 60] = [
         86, 71, 104, 108, 73, 72, 70, 49, 97, 87, 78, 114, 73, 71, 74, 121, 98, 51, 100, 117, 73,
         71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
-        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 119, 103, 100, 50,
-        104, 112, 98, 71, 85, 103, 78, 68, 73, 103, 99, 109, 70, 50, 90, 87, 53, 122, 73, 72, 66,
-        108, 99, 109, 78, 111, 73, 71, 70, 48, 98, 51, 65, 103, 89, 83, 66, 121, 100, 88, 78, 48,
-        101, 83, 66, 116, 89, 87, 108, 115, 89, 109, 57, 52, 76, 105, 66, 97, 89, 87, 53, 53, 73,
-        72, 70, 49, 97, 87, 120, 48, 90, 88, 74, 122, 73, 71, 90, 104, 89, 110, 74, 112, 89, 50, 70,
-        48, 90, 83, 65, 53, 73, 71, 78, 118, 101, 110, 107, 103, 89, 109, 120, 104, 98, 109, 116,
-        108, 100, 72, 77, 115, 73, 71, 70, 122, 73, 68, 77, 103, 97, 109, 57, 50, 97, 87, 70, 115,
-        73, 72, 100, 112, 101, 109, 70, 121, 90, 72, 77, 103, 90, 88, 104, 119, 90, 88, 74, 48, 98,
-        72, 107, 103, 98, 87, 108, 52, 73, 68, 85, 103, 99, 71, 57, 48, 90, 87, 53, 48, 73, 71, 86,
-        115, 97, 88, 104, 112, 99, 110, 77, 117, 73, 69, 74, 121, 97, 87, 100, 111, 100, 67, 66,
-        117, 90, 87, 57, 117, 73, 72, 78, 112, 90, 50, 53, 122, 73, 71, 90, 115, 89, 88, 78, 111,
-        73, 67, 74, 80, 85, 69, 86, 79, 73, 68, 73, 48, 76, 122, 99, 105, 73, 71, 108, 117, 73, 72,
-        82, 111, 90, 83, 66, 116, 97, 88, 78, 48, 101, 83, 66, 117, 97, 87, 100, 111, 100, 67, 66,
-        104, 97, 88, 73, 115, 73, 71, 108, 115, 98, 72, 86, 116, 97, 87, 53, 104, 100, 71, 108, 117,
-        90, 121, 65, 52, 73, 72, 90, 112, 98, 110, 82, 104, 90, 50, 85, 103, 89, 50, 70, 121, 99,
-        121, 66, 119, 89, 88, 74, 114, 90, 87, 81, 103, 89, 87, 120, 118, 98, 109, 99, 103, 84, 87,
-        70, 112, 98, 105, 66, 84, 100, 72, 74, 108, 90, 88, 81, 117, 73, 69, 69, 103, 90, 50, 86,
-        117, 100, 71, 120, 108, 73, 71, 74, 121, 90, 87, 86, 54, 90, 83, 66, 106, 89, 88, 74, 121,
-        97, 87, 86, 122, 73, 72, 82, 111, 90, 83, 66, 104, 99, 109, 57, 116, 89, 83, 66, 118, 90,
-        105, 66, 109, 99, 109, 86, 122, 97, 67, 66, 106, 98, 50, 90, 109, 90, 87, 85, 103, 89, 87,
-        53, 107, 73, 72, 100, 104, 99, 109, 48, 103, 89, 50, 108, 117, 98, 109, 70, 116, 98, 50, 52,
-        103, 99, 109, 57, 115, 98, 72, 77, 103, 90, 110, 74, 118, 98, 83, 66, 75, 98, 50, 85, 110,
-        99, 121, 66, 69, 97, 87, 53, 108, 99, 105, 119, 103, 90, 87, 53, 48, 97, 87, 78, 112, 98,
-        109, 99, 103, 78, 105, 66, 122, 98, 71, 86, 108, 99, 72, 107, 103, 100, 72, 74, 49, 89, 50,
-        116, 108, 99, 110, 77, 103, 100, 71, 56, 103, 99, 51, 82, 118, 99, 67, 66, 109, 98, 51, 73,
-        103, 89, 83, 66, 115, 89, 88, 82, 108, 76, 87, 53, 112, 90, 50, 104, 48, 73, 72, 78, 117,
-        89, 87, 78, 114, 76, 105, 66, 78, 90, 87, 70, 117, 100, 50, 104, 112, 98, 71, 85, 115, 73,
-        68, 69, 120, 73, 71, 49, 112, 99, 50, 78, 111, 97, 87, 86, 50, 98, 51, 86, 122, 73, 71, 116,
-        112, 100, 72, 82, 108, 98, 110, 77, 103, 99, 71, 120, 104, 101, 87, 90, 49, 98, 71, 120, 53,
-        73, 71, 78, 111, 89, 88, 78, 108, 73, 71, 69, 103, 89, 109, 70, 115, 98, 67, 66, 118, 90,
-        105, 66, 53, 89, 88, 74, 117, 73, 71, 70, 106, 99, 109, 57, 122, 99, 121, 66, 78, 99, 110,
-        77, 117, 73, 69, 112, 118, 97, 71, 53, 122, 98, 50, 52, 110, 99, 121, 66, 119, 98, 51, 74,
-        106, 97, 67, 119, 103, 100, 71, 104, 108, 97, 88, 73, 103, 89, 87, 53, 48, 97, 87, 78, 122,
-        73, 71, 57, 105, 99, 50, 86, 121, 100, 109, 86, 107, 73, 71, 74, 53, 73, 68, 73, 103, 100,
-        50, 108, 122, 90, 83, 66, 118, 98, 71, 81, 103, 98, 51, 100, 115, 99, 121, 66, 119, 90, 88,
-        74, 106, 97, 71, 86, 107, 73, 71, 57, 117, 73, 71, 69, 103, 98, 109, 86, 104, 99, 109, 74,
-        53, 73, 71, 57, 104, 97, 121, 66, 48, 99, 109, 86, 108, 76, 103, 61, 61,
+        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52, 61,
     ];
+    let result = Base64EncodeBE::encode(input);
     assert(result == expected);
 
-    let result = STANDARD_NO_PAD.encode(input_str.as_bytes());
-    let expected: [u8; 814] = [
+    let expected: [u8; 59] = [
         86, 71, 104, 108, 73, 72, 70, 49, 97, 87, 78, 114, 73, 71, 74, 121, 98, 51, 100, 117, 73,
         71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
-        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 119, 103, 100, 50,
-        104, 112, 98, 71, 85, 103, 78, 68, 73, 103, 99, 109, 70, 50, 90, 87, 53, 122, 73, 72, 66,
-        108, 99, 109, 78, 111, 73, 71, 70, 48, 98, 51, 65, 103, 89, 83, 66, 121, 100, 88, 78, 48,
-        101, 83, 66, 116, 89, 87, 108, 115, 89, 109, 57, 52, 76, 105, 66, 97, 89, 87, 53, 53, 73,
-        72, 70, 49, 97, 87, 120, 48, 90, 88, 74, 122, 73, 71, 90, 104, 89, 110, 74, 112, 89, 50, 70,
-        48, 90, 83, 65, 53, 73, 71, 78, 118, 101, 110, 107, 103, 89, 109, 120, 104, 98, 109, 116,
-        108, 100, 72, 77, 115, 73, 71, 70, 122, 73, 68, 77, 103, 97, 109, 57, 50, 97, 87, 70, 115,
-        73, 72, 100, 112, 101, 109, 70, 121, 90, 72, 77, 103, 90, 88, 104, 119, 90, 88, 74, 48, 98,
-        72, 107, 103, 98, 87, 108, 52, 73, 68, 85, 103, 99, 71, 57, 48, 90, 87, 53, 48, 73, 71, 86,
-        115, 97, 88, 104, 112, 99, 110, 77, 117, 73, 69, 74, 121, 97, 87, 100, 111, 100, 67, 66,
-        117, 90, 87, 57, 117, 73, 72, 78, 112, 90, 50, 53, 122, 73, 71, 90, 115, 89, 88, 78, 111,
-        73, 67, 74, 80, 85, 69, 86, 79, 73, 68, 73, 48, 76, 122, 99, 105, 73, 71, 108, 117, 73, 72,
-        82, 111, 90, 83, 66, 116, 97, 88, 78, 48, 101, 83, 66, 117, 97, 87, 100, 111, 100, 67, 66,
-        104, 97, 88, 73, 115, 73, 71, 108, 115, 98, 72, 86, 116, 97, 87, 53, 104, 100, 71, 108, 117,
-        90, 121, 65, 52, 73, 72, 90, 112, 98, 110, 82, 104, 90, 50, 85, 103, 89, 50, 70, 121, 99,
-        121, 66, 119, 89, 88, 74, 114, 90, 87, 81, 103, 89, 87, 120, 118, 98, 109, 99, 103, 84, 87,
-        70, 112, 98, 105, 66, 84, 100, 72, 74, 108, 90, 88, 81, 117, 73, 69, 69, 103, 90, 50, 86,
-        117, 100, 71, 120, 108, 73, 71, 74, 121, 90, 87, 86, 54, 90, 83, 66, 106, 89, 88, 74, 121,
-        97, 87, 86, 122, 73, 72, 82, 111, 90, 83, 66, 104, 99, 109, 57, 116, 89, 83, 66, 118, 90,
-        105, 66, 109, 99, 109, 86, 122, 97, 67, 66, 106, 98, 50, 90, 109, 90, 87, 85, 103, 89, 87,
-        53, 107, 73, 72, 100, 104, 99, 109, 48, 103, 89, 50, 108, 117, 98, 109, 70, 116, 98, 50, 52,
-        103, 99, 109, 57, 115, 98, 72, 77, 103, 90, 110, 74, 118, 98, 83, 66, 75, 98, 50, 85, 110,
-        99, 121, 66, 69, 97, 87, 53, 108, 99, 105, 119, 103, 90, 87, 53, 48, 97, 87, 78, 112, 98,
-        109, 99, 103, 78, 105, 66, 122, 98, 71, 86, 108, 99, 72, 107, 103, 100, 72, 74, 49, 89, 50,
-        116, 108, 99, 110, 77, 103, 100, 71, 56, 103, 99, 51, 82, 118, 99, 67, 66, 109, 98, 51, 73,
-        103, 89, 83, 66, 115, 89, 88, 82, 108, 76, 87, 53, 112, 90, 50, 104, 48, 73, 72, 78, 117,
-        89, 87, 78, 114, 76, 105, 66, 78, 90, 87, 70, 117, 100, 50, 104, 112, 98, 71, 85, 115, 73,
-        68, 69, 120, 73, 71, 49, 112, 99, 50, 78, 111, 97, 87, 86, 50, 98, 51, 86, 122, 73, 71, 116,
-        112, 100, 72, 82, 108, 98, 110, 77, 103, 99, 71, 120, 104, 101, 87, 90, 49, 98, 71, 120, 53,
-        73, 71, 78, 111, 89, 88, 78, 108, 73, 71, 69, 103, 89, 109, 70, 115, 98, 67, 66, 118, 90,
-        105, 66, 53, 89, 88, 74, 117, 73, 71, 70, 106, 99, 109, 57, 122, 99, 121, 66, 78, 99, 110,
-        77, 117, 73, 69, 112, 118, 97, 71, 53, 122, 98, 50, 52, 110, 99, 121, 66, 119, 98, 51, 74,
-        106, 97, 67, 119, 103, 100, 71, 104, 108, 97, 88, 73, 103, 89, 87, 53, 48, 97, 87, 78, 122,
-        73, 71, 57, 105, 99, 50, 86, 121, 100, 109, 86, 107, 73, 71, 74, 53, 73, 68, 73, 103, 100,
-        50, 108, 122, 90, 83, 66, 118, 98, 71, 81, 103, 98, 51, 100, 115, 99, 121, 66, 119, 90, 88,
-        74, 106, 97, 71, 86, 107, 73, 71, 57, 117, 73, 71, 69, 103, 98, 109, 86, 104, 99, 109, 74,
-        53, 73, 71, 57, 104, 97, 121, 66, 48, 99, 109, 86, 108, 76, 103,
+        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52,
     ];
+    let result = Base64EncodeBENoPad::encode(input);
     assert(result == expected);
 }
 
@@ -508,7 +491,7 @@ fn test_encode_standard() {
     // test encoding to / and +
     let input: [u8; 2] = [255, 224];
     let expected: [u8; 4] = [47, 43, 65, 61];
-    let result: [u8; 4] = STANDARD.encode(input);
+    let result: [u8; 4] = Base64EncodeBE::encode(input);
 
     assert(result == expected);
 }
@@ -518,7 +501,7 @@ fn test_encode_url_safe_with_pad() {
     // test encoding to _ and -
     let input: [u8; 2] = [255, 224];
     let expected: [u8; 4] = [95, 45, 65, 61];
-    let result: [u8; 4] = URL_SAFE_WITH_PAD.encode(input);
+    let result: [u8; 4] = Base64EncodeBEUrlSafeWithPad::encode(input);
 
     assert(result == expected);
 }
@@ -528,7 +511,7 @@ fn test_encode_url_safe() {
     // test encoding to _ and -
     let input: [u8; 2] = [255, 224];
     let expected: [u8; 3] = [95, 45, 65];
-    let result: [u8; 3] = URL_SAFE.encode(input);
+    let result: [u8; 3] = Base64EncodeBEUrlSafe::encode(input);
     assert(result == expected);
 }
 
@@ -547,15 +530,134 @@ fn test_encode() {
         133, 38, 121, 249, 97, 17, 132, 168, 87, 182, 85,
     ];
 
-    let result: [u8; 43] = STANDARD_NO_PAD.encode(input);
+    let result = Base64EncodeBENoPad::encode(input);
     assert(result == expected);
 }
 
 #[test]
 fn test_base64_encode_slash() {
     let input: [u8; 1] = [63]; // '/' in Base64
-    let result: [u8; 1] = STANDARD_NO_PAD.encode_elements(input);
+    let result: [u8; 1] = crate::encoder::encode_elements::<_, 0>(input);
 
     // Should map to '/' in ASCII, which is 47
     assert(result[0] == 47);
+}
+
+#[test]
+fn test_encode_var_empty() {
+    let input: BoundedVec<u8, 3> = BoundedVec::new();
+    let result = Base64EncodeBE::encode_var(input);
+    let expected: BoundedVec<u8, 4> = BoundedVec::new();
+    assert(result == expected);
+
+    let input: BoundedVec<u8, 0> = BoundedVec::new();
+    let result = Base64EncodeBE::encode_var(input);
+    let expected: BoundedVec<u8, 0> = BoundedVec::new();
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_var_padding() {
+    // f
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 103, 61, 61]);
+    let result = Base64EncodeBE::encode_var(input);
+
+    assert(result == expected);
+
+    // fo
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 56, 61]);
+    let result = Base64EncodeBE::encode_var(input);
+
+    assert(result == expected);
+
+    // foo
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111, 111]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 57, 118]);
+    let result = Base64EncodeBE::encode_var(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_var_standard_no_pad() {
+    // f
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 103]);
+    let result = Base64EncodeBENoPad::encode_var(input);
+
+    assert(result == expected);
+
+    // fo
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 56]);
+    let result = Base64EncodeBENoPad::encode_var(input);
+
+    assert(result == expected);
+
+    // foo
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([102, 111, 111]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([90, 109, 57, 118]);
+    let result = Base64EncodeBENoPad::encode_var(input);
+
+    assert(result == expected);
+}
+
+#[test]
+fn test_encode_var() {
+    // "Hello, World!"
+    let input: BoundedVec<u8, 16> =
+        BoundedVec::from_array([72, 101, 108, 108, 111, 44, 32, 87, 111, 114, 108, 100, 33]);
+    // base64: "SGVsbG8sIFdvcmxkIQ=="
+    let expected: BoundedVec<u8, 24> = BoundedVec::from_array([
+        83, 71, 86, 115, 98, 71, 56, 115, 73, 70, 100, 118, 99, 109, 120, 107, 73, 81, 61, 61,
+    ]);
+    // base64: "SGVsbG8sIFdvcmxkIQ"
+    let expected_no_pad: BoundedVec<u8, 22> = BoundedVec::from_array([
+        83, 71, 86, 115, 98, 71, 56, 115, 73, 70, 100, 118, 99, 109, 120, 107, 73, 81,
+    ]);
+
+    // all configurations should give the same encoding
+    let result = Base64EncodeBE::encode_var(input);
+    println(f"result = {result}");
+    assert(result == expected);
+    let result = Base64EncodeBENoPad::encode_var(input);
+    assert(result == expected_no_pad);
+    let result = Base64EncodeBEUrlSafeWithPad::encode_var(input);
+    assert(result == expected);
+    let result = Base64EncodeBEUrlSafe::encode_var(input);
+    assert(result == expected_no_pad);
+}
+
+#[test]
+fn test_encode_var_multi_chunks() {
+    // "The quick brown fox jumps over the lazy dog."
+    let input: BoundedVec<u8, 48> = BoundedVec::from_array([
+        84, 104, 101, 32, 113, 117, 105, 99, 107, 32, 98, 114, 111, 119, 110, 32, 102, 111, 120, 32,
+        106, 117, 109, 112, 115, 32, 111, 118, 101, 114, 32, 116, 104, 101, 32, 108, 97, 122, 121,
+        32, 100, 111, 103, 46,
+    ]);
+    // base64: "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4="
+    let expected: BoundedVec<u8, 64> = BoundedVec::from_array([
+        86, 71, 104, 108, 73, 72, 70, 49, 97, 87, 78, 114, 73, 71, 74, 121, 98, 51, 100, 117, 73,
+        71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
+        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52, 61,
+    ]);
+    // base64: "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZy4="
+    let expected_no_pad: BoundedVec<u8, 64> = BoundedVec::from_array([
+        86, 71, 104, 108, 73, 72, 70, 49, 97, 87, 78, 114, 73, 71, 74, 121, 98, 51, 100, 117, 73,
+        71, 90, 118, 101, 67, 66, 113, 100, 87, 49, 119, 99, 121, 66, 118, 100, 109, 86, 121, 73,
+        72, 82, 111, 90, 83, 66, 115, 89, 88, 112, 53, 73, 71, 82, 118, 90, 121, 52,
+    ]);
+
+    // all configurations should give the same encoding
+    let result = Base64EncodeBE::encode_var(input);
+    assert(result == expected);
+    let result = Base64EncodeBENoPad::encode_var(input);
+    assert(result == expected_no_pad);
+    let result = Base64EncodeBEUrlSafeWithPad::encode_var(input);
+    assert(result == expected);
+    let result = Base64EncodeBEUrlSafe::encode_var(input);
+    assert(result == expected_no_pad);
 }

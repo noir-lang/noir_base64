@@ -29,7 +29,7 @@ Takes an arbitrary byte array as input, encodes it in Base64 according to the al
 
 ```
 // bytes: [u8; N]
-let base64 = BASE64_ENCODER.encode(bytes);
+let base64 = BASE64_ENCODER::encode(bytes);
 ```
 
 ### `fn decode`
@@ -37,7 +37,7 @@ Takes a utf-8 byte array that encodes a Base64 string and attempts to decoded it
 
 ```
 // base64: [u8; N]
-let bytes = BASE64_DECODER.decode(base64);
+let bytes = BASE64_DECODER::decode(base64);
 ```
 
 ## Example usage
@@ -48,10 +48,10 @@ fn encode_and_decode() {
     let input: str<88> = "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
     let base64_encoded = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg==";
 
-    let encoded:[u8; 120] = noir_base64::BASE64_ENCODER.encode(input.as_bytes());
+    let encoded:[u8; 120] = noir_base64::BASE64_ENCODER::encode(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
-    let decoded: [u8; 88] = noir_base64::BASE64_DECODER.decode(encoded);
+    let decoded: [u8; 88] = noir_base64::BASE64_DECODER::decode(encoded);
     assert(decoded == input.as_bytes());
 }
 ```

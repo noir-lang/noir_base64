@@ -15,19 +15,31 @@
 //! referenced by the index is placed in the output string.
 
 mod encoder;
+mod benchmarks;
+mod tables;
+mod boundary_check;
 pub use encoder::{
-    STANDARD as BASE64_ENCODER, STANDARD_NO_PAD as BASE64_NO_PAD_ENCODER,
-    URL_SAFE as BASE64_URL_ENCODER, URL_SAFE_WITH_PAD as BASE64_URL_WITH_PAD_ENCODER,
+    Base64EncodeBE as BASE64_ENCODER, Base64EncodeBENoPad as BASE64_NO_PAD_ENCODER,
+    Base64EncodeBEUrlSafe as BASE64_URL_ENCODER,
+    Base64EncodeBEUrlSafeWithPad as BASE64_URL_WITH_PAD_ENCODER,
 };
 
 mod decoder;
 pub use decoder::{
-    STANDARD as BASE64_DECODER, STANDARD_NO_PAD as BASE64_NO_PAD_DECODER,
-    URL_SAFE as BASE64_URL_DECODER, URL_SAFE_WITH_PAD as BASE64_URL_WITH_PAD_DECODER,
+    Base64DecodeBE as BASE64_DECODER, Base64DecodeBENoPad as BASE64_NO_PAD_DECODER,
+    Base64DecodeBEUrlSafe as BASE64_URL_DECODER,
+    Base64DecodeBEUrlSafeWithPad as BASE64_URL_WITH_PAD_DECODER,
 };
 
 pub(crate) mod defaults {
     pub(crate) global BASE64_PADDING_CHAR: u8 = 61;
+    // 240 bits fits 40 6-bit chunks and 30 8-bit chunks
+    // we pack 40 base64 values into a field element and convert into 30 bytes
+    pub(crate) global BASE64_ELEMENTS_PER_CHUNK: u32 = 40;
+    pub(crate) global BYTES_PER_CHUNK: u32 = 30;
+    // when converting between ASCII and Base64 via lookup tables, an invalid result is -2^32
+    pub(crate) global INVALID_VALUE: u8 = 255;
+    pub(crate) global INVALID_DECODE_VALUE: Field = 0 - 0x100000000;
 }
 
 #[test]
@@ -36,10 +48,10 @@ fn encode_and_decode() {
         "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
     let base64_encoded = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg==";
 
-    let encoded: [u8; 120] = BASE64_ENCODER.encode(input.as_bytes());
+    let encoded: [u8; 120] = BASE64_ENCODER::encode(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
-    let decoded: [u8; 88] = BASE64_DECODER.decode(encoded);
+    let decoded: [u8; 88] = BASE64_DECODER::decode(encoded);
     assert(decoded == input.as_bytes());
 }
 
@@ -49,9 +61,9 @@ fn encode_and_decode_no_pad() {
         "The quick brown fox jumps over the lazy dog, while 42 ravens perch atop a rusty mailbox.";
     let base64_encoded: str<118> = "VGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIHRoZSBsYXp5IGRvZywgd2hpbGUgNDIgcmF2ZW5zIHBlcmNoIGF0b3AgYSBydXN0eSBtYWlsYm94Lg";
 
-    let encoded: [u8; 118] = BASE64_NO_PAD_ENCODER.encode(input.as_bytes());
+    let encoded: [u8; 118] = BASE64_NO_PAD_ENCODER::encode(input.as_bytes());
     assert(encoded == base64_encoded.as_bytes());
 
-    let decoded: [u8; 88] = BASE64_NO_PAD_DECODER.decode(encoded);
+    let decoded: [u8; 88] = BASE64_NO_PAD_DECODER::decode(encoded);
     assert(decoded == input.as_bytes());
 }
