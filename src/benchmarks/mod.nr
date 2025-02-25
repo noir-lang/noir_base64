@@ -52,4 +52,3 @@ fn bench_decode_610_var_no_pad(input: BoundedVec<u8, 816>) -> BoundedVec<u8, 610
     let r = (Base64DecodeBENoPad::decode_var(input));
     r
 }
-
