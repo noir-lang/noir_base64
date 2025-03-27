@@ -175,11 +175,12 @@ fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let UseURLT
             for j in 0..BASE64_ELEMENTS_PER_CHUNK {
                 slice *= 64;
                 let offset = i * BASE64_ELEMENTS_PER_CHUNK + j;
-                let input_byte = input[offset];
+                let input_byte: u8 = input[offset];
+                let index = input_byte as u32;
                 let decoded = if UseURLTable == 1 {
-                    BASE64_DECODE_BE_URL_TABLE[input_byte]
+                    BASE64_DECODE_BE_URL_TABLE[index]
                 } else {
-                    BASE64_DECODE_BE_TABLE[input_byte]
+                    BASE64_DECODE_BE_TABLE[index]
                 };
                 validity_check += decoded;
                 slice += decoded as Field;
@@ -212,11 +213,12 @@ fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let UseURLT
         for j in 0..base64_elements_in_final_chunk {
             slice *= 64;
             let offset = base64_offset + j;
-            let input_byte = input[offset];
+            let input_byte: u8 = input[offset];
+            let index = input_byte as u32;
             let decoded = if UseURLTable == 1 {
-                BASE64_DECODE_BE_URL_TABLE[input_byte]
+                BASE64_DECODE_BE_URL_TABLE[index]
             } else {
-                BASE64_DECODE_BE_TABLE[input_byte]
+                BASE64_DECODE_BE_TABLE[index]
             };
             validity_check += decoded;
             slice += decoded as Field;
@@ -338,6 +340,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
                 } else {
                     decode_index = input_byte as Field + boundary_flags[offset] * 256;
                 }
+                let decode_index = decode_index as u32;
                 let decoded = if UseURLTable == 1 {
                     BASE64_DECODE_BE_URL_VAR_TABLE[decode_index]
                 } else {
@@ -405,6 +408,8 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
             } else {
                 decode_index = input_byte as Field + boundary_flags[offset] * 256;
             }
+            let decode_index = decode_index as u32;
+
             let decoded = if UseURLTable == 1 {
                 BASE64_DECODE_BE_URL_VAR_TABLE[decode_index]
             } else {
