@@ -183,12 +183,12 @@ fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let UseURLT
                 };
                 validity_check += decoded;
                 slice += decoded as Field;
+                // Safety: get a sensible error message out if the decoding is invalid.
+                // Note that we *constrain* the encoding is correct by performing a range check on `validity_check`
+                // If the decoding is invalid, `decoded = -2^{32}`. We add up all `decoded` values and apply a 32-bit range check.
+                // Given all valid encodings are 8-bit, as long as the input length is less than 2^24 bytes, it is not possible to
+                // underflow validity_check with an invalid encoding, and then overflow again by adding up valid encodings
                 unsafe {
-                    //@safety get a sensible error message out if the decoding is invalid.
-                    // Note that we *constrain* the encoding is correct by performing a range check on `validity_check`
-                    // If the decoding is invalid, `decoded = -2^{32}`. We add up all `decoded` values and apply a 32-bit range check.
-                    // Given all valid encodings are 8-bit, as long as the input length is less than 2^24 bytes, it is not possible to
-                    // underflow validity_check with an invalid encoding, and then overflow again by adding up valid encodings
                     __validate_decoded(decoded, input_byte, offset);
                 }
             }
@@ -220,12 +220,12 @@ fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let UseURLT
             };
             validity_check += decoded;
             slice += decoded as Field;
+            // Safety: get a sensible error message out if the decoding is invalid.
+            // Note that we *constrain* the encoding is correct by performing a range check on `validity_check`
+            // If the decoding is invalid, `decoded = -2^{32}`. We add up all `decoded` values and apply a 32-bit range check.
+            // Given all valid encodings are 8-bit, as long as the input length is less than 2^24 bytes, it is not possible to
+            // underflow validity_check with an invalid encoding, and then overflow again by adding up valid encodings
             unsafe {
-                //@safety get a sensible error message out if the decoding is invalid.
-                // Note that we *constrain* the encoding is correct by performing a range check on `validity_check`
-                // If the decoding is invalid, `decoded = -2^{32}`. We add up all `decoded` values and apply a 32-bit range check.
-                // Given all valid encodings are 8-bit, as long as the input length is less than 2^24 bytes, it is not possible to
-                // underflow validity_check with an invalid encoding, and then overflow again by adding up valid encodings
                 __validate_decoded(decoded, input_byte, offset);
             }
         }
@@ -256,9 +256,9 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
 ) -> BoundedVec<u8, OutputBytes> {
     // We don't know how many padding bytes the input string contains - we use an unconstrained fn to return a *claim* that we will later validate
     let (has_first_padding_byte_claim, has_second_padding_byte_claim) = if (Pad == 1) {
+        // Safety: get claims about whether the bytes input[input.len() - 2] and input[input.len() - 1] are padding chars
+        // we validate this later on by requiring these characters equal BASE64_PADDING_CHAR by looking up BASE64_DECODE_BE_VAR_TABLE
         unsafe {
-            //@safety get claims about whether the bytes input[input.len() - 2] and input[input.len() - 1] are padding chars
-            // we validate this later on by requiring these characters equal BASE64_PADDING_CHAR by looking up BASE64_DECODE_BE_VAR_TABLE
             crate::decoder::__get_num_padding_chars_var::<InputElements>(input)
         }
     } else {
@@ -346,12 +346,12 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
 
                 validity_check += decoded;
                 slice += decoded;
+                // Safety: get a sensible error message out if the decoding is invalid.
+                // Note that we *constrain* the encoding is correct by performing a range check on `validity_check`
+                // If the decoding is invalid, `decoded = -2^{32}`. We add up all `decoded` values and apply a 32-bit range check.
+                // Given all valid encodings are 8-bit, as long as the input length is less than 2^24 bytes, it is not possible to
+                // underflow validity_check with an invalid encoding, and then overflow again by adding up valid encodings
                 unsafe {
-                    //@safety get a sensible error message out if the decoding is invalid.
-                    // Note that we *constrain* the encoding is correct by performing a range check on `validity_check`
-                    // If the decoding is invalid, `decoded = -2^{32}`. We add up all `decoded` values and apply a 32-bit range check.
-                    // Given all valid encodings are 8-bit, as long as the input length is less than 2^24 bytes, it is not possible to
-                    // underflow validity_check with an invalid encoding, and then overflow again by adding up valid encodings
                     __validate_decoded(decoded, input_byte, offset);
                 }
             }
@@ -410,12 +410,12 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
             } else {
                 BASE64_DECODE_BE_VAR_TABLE[decode_index]
             };
+            // Safety: get a sensible error message out if the decoding is invalid.
+            // Note that we *constrain* the encoding is correct by performing a range check on `validity_check`
+            // If the decoding is invalid, `decoded = -2^{32}`. We add up all `decoded` values and apply a 32-bit range check.
+            // Given all valid encodings are 8-bit, as long as the input length is less than 2^24 bytes, it is not possible to
+            // underflow validity_check with an invalid encoding, and then overflow again by adding up valid encodings
             unsafe {
-                //@safety get a sensible error message out if the decoding is invalid.
-                // Note that we *constrain* the encoding is correct by performing a range check on `validity_check`
-                // If the decoding is invalid, `decoded = -2^{32}`. We add up all `decoded` values and apply a 32-bit range check.
-                // Given all valid encodings are 8-bit, as long as the input length is less than 2^24 bytes, it is not possible to
-                // underflow validity_check with an invalid encoding, and then overflow again by adding up valid encodings
                 __validate_decoded(decoded, input_byte, offset);
             }
             validity_check += decoded;
