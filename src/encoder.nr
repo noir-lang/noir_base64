@@ -153,10 +153,8 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
     // Note: if `boundary_flags[0] = 1`, the `BASE64_ENCODE_BE_VAR_TABLE` lookup will output 0.
     // Note: `MAX_INPUT_LEN` is known at compile time so this `if` statement should not incur constraints.
     if MAX_INPUT_LEN > 0 {
-        let index = raw[0] as Field + boundary_flags[0] * 64;
-        index.assert_max_bit_size::<32>();
-        let index = index as u32;
-        result_arr[0] = BASE64_ENCODE_BE_VAR_TABLE[index];
+        let index = (raw[0] as Field + boundary_flags[0] * 64) as u32;
+        result_arr[0] = BASE64_ENCODE_BE_VAR_TABLE[index] as u8;
     }
 
     let mut previous_was_first_padding_byte = 0;
@@ -198,7 +196,6 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
 
             encoding_index = raw[i] as Field + (exceed_length * 64);
         }
-        encoding_index.assert_max_bit_size::<32>();
         let encoding_index = encoding_index as u32;
 
         // Note: this `if` condition is known at compile time so should not incur additional constraints

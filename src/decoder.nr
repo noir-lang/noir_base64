@@ -340,7 +340,6 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
                 } else {
                     decode_index = input_byte as Field + boundary_flags[offset] * 256;
                 }
-                decode_index.assert_max_bit_size::<32>();
                 let decode_index = decode_index as u32;
                 let decoded = if UseURLTable == 1 {
                     BASE64_DECODE_BE_URL_VAR_TABLE[decode_index]
@@ -409,7 +408,6 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
             } else {
                 decode_index = input_byte as Field + boundary_flags[offset] * 256;
             }
-            decode_index.assert_max_bit_size::<32>();
             let decode_index = decode_index as u32;
 
             let decoded = if UseURLTable == 1 {
