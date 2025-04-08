@@ -277,11 +277,11 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
     let input_length = input.len();
     let input = input.storage();
 
-    // boundary_flags = array of Field elements.
+    // boundary_flags = array of u32 elements.
     // if `i < input_length, boundary_flags[i] = 0`
     // if `i >= input_length, boundary_flags[i+1] = 1`
     // used as cheap(ish) predicates when iterating over bounded vector elements
-    let boundary_flags: [Field; InputElements] = boundary_check(input_length);
+    let boundary_flags: [u32; InputElements] = boundary_check(input_length);
     let mut result: [u8; OutputBytes] = [0; OutputBytes];
 
     let max_num_chunks = (InputElements / BASE64_ELEMENTS_PER_CHUNK)
@@ -299,7 +299,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
                 let offset = i * BASE64_ELEMENTS_PER_CHUNK + j;
                 let input_byte = input[offset];
 
-                let mut decode_index: Field = 0;
+                let mut decode_index: u32 = 0;
                 if Pad == 1 {
                     let mut might_be_second_padding_char = 0;
                     let mut might_be_first_padding_char = 0;
@@ -326,8 +326,8 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
                     // Case 1: we are at byte position `input.len() - 2` and `has_first_padding_byte_claim = true`
                     // Case 2: we are at byte position `input.len() - 1` and `has_second_padding_byte_claim = true`
                     let require_padding = might_be_first_padding_char
-                        * has_first_padding_byte_claim as Field
-                        + (might_be_second_padding_char * has_second_padding_byte_claim as Field);
+                        * has_first_padding_byte_claim as u32
+                        + (might_be_second_padding_char * has_second_padding_byte_claim as u32);
 
                     // The `decode_index` is used to map the input Base64 character into an output decoded character.
                     // We know `input_byte` is in the range 0-255 , so we use a size 768 lookup to handle the following 3 cases:
@@ -336,11 +336,10 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
                     // Case 3 (index range 512-767): A claim has been made that a padding byte is present, and we are at the appropriate byte location to check this.
                     //                               The only valid input is BASE64_PADDING_CHAR, which decodes to 0. All other inputs return an error state
                     decode_index =
-                        input_byte as Field + boundary_flags[offset] * 256 + require_padding * 512;
+                        input_byte as u32 + boundary_flags[offset] * 256 + require_padding * 512;
                 } else {
-                    decode_index = input_byte as Field + boundary_flags[offset] * 256;
+                    decode_index = input_byte as u32 + boundary_flags[offset] * 256;
                 }
-                let decode_index = decode_index as u32;
                 let decoded = if UseURLTable == 1 {
                     BASE64_DECODE_BE_URL_VAR_TABLE[decode_index]
                 } else {
@@ -377,7 +376,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
             let offset = base64_offset + j;
             let input_byte = input[offset];
 
-            let mut decode_index: Field = 0;
+            let mut decode_index: u32 = 0;
             if Pad == 1 {
                 let mut might_be_second_padding_char = 0;
                 let mut might_be_first_padding_char = 0;
@@ -401,15 +400,13 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
                 }
 
                 let require_padding = might_be_first_padding_char
-                    * has_first_padding_byte_claim as Field
-                    + (might_be_second_padding_char * has_second_padding_byte_claim as Field);
+                    * has_first_padding_byte_claim as u32
+                    + (might_be_second_padding_char * has_second_padding_byte_claim as u32);
                 decode_index =
-                    input_byte as Field + boundary_flags[offset] * 256 + require_padding * 512;
+                    input_byte as u32 + boundary_flags[offset] * 256 + require_padding * 512;
             } else {
-                decode_index = input_byte as Field + boundary_flags[offset] * 256;
+                decode_index = input_byte as u32 + boundary_flags[offset] * 256;
             }
-            let decode_index = decode_index as u32;
-
             let decoded = if UseURLTable == 1 {
                 BASE64_DECODE_BE_URL_VAR_TABLE[decode_index]
             } else {

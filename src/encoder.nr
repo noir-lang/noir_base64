@@ -8,8 +8,8 @@ use crate::tables::{
 pub use crate::boundary_check::boundary_check;
 
 global CONVERT_MODULO3_TO_PADDING_BYTES: [u32; 3] = [0, 2, 1];
-global PAD_1: [Field; 3] = [0, 1, 1];
-global PAD_2: [Field; 3] = [0, 1, 0];
+global PAD_1: [u32; 3] = [0, 1, 1];
+global PAD_2: [u32; 3] = [0, 1, 0];
 
 /// Encoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
 /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
@@ -134,7 +134,7 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
 
     // Get an array of Field elements where boundary_flags[i] = 0 if i < encoded_length, otherwise i = 1.
     // We use this array to determine if the result array should contain a valid Base64 encoded value, 0 or if an error state has been reached
-    let boundary_flags: [Field; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] =
+    let boundary_flags: [u32; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] =
         boundary_check(encoded_length);
 
     // Using 2 lookups is slightly cheaper than figuring out if the 1st/2nd padding byte is set from the padding length param... I think?
@@ -153,7 +153,7 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
     // Note: if `boundary_flags[0] = 1`, the `BASE64_ENCODE_BE_VAR_TABLE` lookup will output 0.
     // Note: `MAX_INPUT_LEN` is known at compile time so this `if` statement should not incur constraints.
     if MAX_INPUT_LEN > 0 {
-        let index = (raw[0] as Field + boundary_flags[0] * 64) as u32;
+        let index = raw[0] as u32 + boundary_flags[0] * 64;
         result_arr[0] = BASE64_ENCODE_BE_VAR_TABLE[index] as u8;
     }
 
@@ -162,12 +162,12 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
         let exceed_length = boundary_flags[i];
         // hit_limit = we are at the first location where a padding Base64 character *could* be enerated
 
-        let mut encoding_index: Field = 0;
+        let mut encoding_index: u32 = 0;
 
         if HasPadding == 1 {
-            let hit_limit: Field = (1 - boundary_flags[i - 1]) * boundary_flags[i];
+            let hit_limit: u32 = (1 - boundary_flags[i - 1]) * boundary_flags[i];
             // We need to write a padding byte if `i == encoding_length` and `has_first_padding_byte == 1`
-            let write_first_padding_byte: Field = hit_limit * has_first_padding_byte;
+            let write_first_padding_byte: u32 = hit_limit * has_first_padding_byte;
             // We need to write a padding byte if `i == encoding_length + 1` and `has_second_padding_byte == 1`
             let write_second_padding_byte =
                 previous_was_first_padding_byte * has_second_padding_byte;
@@ -183,7 +183,7 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
             //      outcome: if `raw[i] = 0`, the returned value is BASE64_PADDING_CHAR. All other inputs for `raw[i]` return an error state
             // Note: due to how they are constructed, it is not possible for both `write_first_padding_byte` and `write_second_padding_byte` to equal 1.
             //       Similarly, it is not possible for `exceed_length = 0` and either of `write_first_padding_byte` or `write_second_padding_byte` to equal 1.
-            encoding_index = raw[i] as Field
+            encoding_index = raw[i] as u32
                 + (exceed_length + write_first_padding_byte + write_second_padding_byte) * 64;
             previous_was_first_padding_byte = write_first_padding_byte;
         } else {
@@ -194,9 +194,8 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
             // CASE 2: `exceed_length = 1`
             //      outcome: if `raw[i] = 0`, the returned value is 0. All other inputs for `raw[i]` return an error state
 
-            encoding_index = raw[i] as Field + (exceed_length * 64);
+            encoding_index = raw[i] as u32 + (exceed_length * 64);
         }
-        let encoding_index = encoding_index as u32;
 
         // Note: this `if` condition is known at compile time so should not incur additional constraints
         let token: u8 = if UseURLTable == 1 {
