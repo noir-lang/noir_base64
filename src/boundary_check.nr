@@ -15,10 +15,8 @@ unconstrained fn __boundary_check<let Range: u32>(limit: u32) -> [Field; Range] 
  *          Gate cost is 3 * Range
  **/
 pub fn boundary_check<let Range: u32>(limit: u32) -> [Field; Range] {
-    let r = unsafe {
-        //@safety r contains claims about whether `r[i] >= limit`. the rest of this function checks this claim is correct
-        __boundary_check(limit)
-    };
+    // Safety: r contains claims about whether `r[i] >= limit`. the rest of this function checks this claim is correct
+    let r = unsafe { __boundary_check(limit) };
 
     let mut transition_index = 0;
     // **
