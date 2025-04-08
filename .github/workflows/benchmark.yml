@@ -22,7 +22,7 @@ jobs:
       - name: Install bb
         run: |
           npm install -g bbup
-          bbup -nv 1.0.0-beta.4
+          bbup -nv 1.0.0-beta.3
           sudo apt install libc++-dev
 
       - name: Build Noir benchmark programs
