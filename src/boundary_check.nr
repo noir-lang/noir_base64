@@ -1,5 +1,5 @@
-unconstrained fn __boundary_check<let Range: u32>(limit: u32) -> [u32; Range] {
-    let mut r: [u32; Range] = [0; Range];
+unconstrained fn __boundary_check<let Range: u32>(limit: u32) -> [Field; Range] {
+    let mut r: [Field; Range] = [0; Range];
     for i in limit..Range {
         r[i] = 1;
     }
@@ -14,11 +14,11 @@ unconstrained fn __boundary_check<let Range: u32>(limit: u32) -> [u32; Range] {
  *          This method efficiently generates such predicate values more efficiently than querying whether `i <= limit` at every iteration.
  *          Gate cost is 3 * Range
  **/
-pub fn boundary_check<let Range: u32>(limit: u32) -> [u32; Range] {
+pub fn boundary_check<let Range: u32>(limit: u32) -> [Field; Range] {
     // Safety: r contains claims about whether `r[i] >= limit`. the rest of this function checks this claim is correct
     let r = unsafe { __boundary_check(limit) };
 
-    let mut transition_index: Field = 0;
+    let mut transition_index = 0;
     // **
     // We have an array of Field elements `r` such that:
     // if i < limit, `r = 0`
@@ -37,12 +37,12 @@ pub fn boundary_check<let Range: u32>(limit: u32) -> [u32; Range] {
         for i in 0..Range - 1 {
             assert_eq(r[i] * r[i], r[i]);
             assert_eq(r[i] * r[i + 1], r[i]);
-            let idx = (r[i + 1] * (1 - r[i])) as Field * (i as Field + 1);
+            let idx = (r[i + 1] * (1 - r[i])) * (i as Field + 1);
             transition_index = transition_index + idx;
             std::as_witness(transition_index);
         }
         assert_eq(r[Range - 1] * r[Range - 1], r[Range - 1]);
-        transition_index = transition_index + (1 - r[Range - 1] as Field) * limit as Field;
+        transition_index = transition_index + (1 - r[Range - 1]) * limit as Field;
         assert(transition_index == limit as Field);
         r
     } else {
