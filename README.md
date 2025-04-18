@@ -4,7 +4,7 @@ A Base64 encoding/decoding library written in Noir which can encode arbitrary by
 
 ## Noir Version Compatibility
 
-This library is tested with all Noir stable releases from v0.36.0.
+This library is tested with all Noir stable releases from v1.0.0-beta.1.
 
 ## Usage
 ### Configuration
