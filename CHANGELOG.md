@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/noir-lang/noir_base64/compare/v0.4.0...v0.4.1) (2025-05-21)
+
+
+### Bug Fixes
+
+* Don't use bool multiplication ([#43](https://github.com/noir-lang/noir_base64/issues/43)) ([4fcc136](https://github.com/noir-lang/noir_base64/commit/4fcc136daba65b27dd7aa06ccc489e81c7bfac1f))
+
 ## [0.4.0](https://github.com/noir-lang/noir_base64/compare/v0.3.1...v0.4.0) (2025-02-25)
 
 
