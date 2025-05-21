@@ -439,11 +439,9 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let
         assert(input_length % 4 == 0, "base64 encoded strings must be a multiple of 4 bytes");
     }
 
-    assert_eq(
-        has_first_padding_byte_claim,
-        has_second_padding_byte_claim * has_first_padding_byte_claim,
-        "if first byte contains padding so must the second",
-    );
+    if has_first_padding_byte_claim {
+        assert(has_second_padding_byte_claim, "if first byte contains padding so must the second");
+    }
     let output_length = ((input_length * 3) / 4) - num_padding_chars;
     BoundedVec::from_parts_unchecked(result, output_length)
 }
