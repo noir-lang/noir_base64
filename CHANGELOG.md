@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/noir-lang/noir_base64/compare/v0.4.0...v0.4.1) (2025-06-10)
+
+
+### Bug Fixes
+
+* Don't use bool multiplication ([#43](https://github.com/noir-lang/noir_base64/issues/43)) ([4fcc136](https://github.com/noir-lang/noir_base64/commit/4fcc136daba65b27dd7aa06ccc489e81c7bfac1f))
+* Use u32 for array indexes ([#41](https://github.com/noir-lang/noir_base64/issues/41)) ([f772586](https://github.com/noir-lang/noir_base64/commit/f772586b7f639964b483549b5d9c50f82ee657a0))
+
 ## [0.4.0](https://github.com/noir-lang/noir_base64/compare/v0.3.1...v0.4.0) (2025-02-25)
 
 
