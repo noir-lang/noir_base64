@@ -1,3 +1,5 @@
+mod to_be_radix;
+
 use super::defaults::{BASE64_ELEMENTS_PER_CHUNK, BASE64_PADDING_CHAR, BYTES_PER_CHUNK};
 
 use crate::tables::{
@@ -6,6 +8,7 @@ use crate::tables::{
 };
 
 pub use crate::boundary_check::boundary_check;
+use to_be_radix::to_be_radix_64;
 
 global CONVERT_MODULO3_TO_PADDING_BYTES: [u32; 3] = [0, 2, 1];
 global PAD_1: [Field; 3] = [0, 1, 1];
@@ -259,7 +262,7 @@ fn split_into_six_bit_chunks<let InputBytes: u32, let OutputElements: u32, let H
                 slice += input[i * BYTES_PER_CHUNK + j] as Field;
             }
             // extract the 6-bit values from the Field element
-            let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = slice.to_be_radix(64);
+            let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = to_be_radix_64(slice);
             for j in 0..BASE64_ELEMENTS_PER_CHUNK {
                 result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
             }
@@ -282,7 +285,7 @@ fn split_into_six_bit_chunks<let InputBytes: u32, let OutputElements: u32, let H
         }
 
         // extract the 6-bit values from the Field element
-        let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = slice.to_be_radix(64);
+        let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = to_be_radix_64(slice);
         for i in 0..num_elements_in_final_chunk {
             // If padding is enabled, we can skip setting the last `non_padded_output_length` chars
             // N.B. if statement is compile time so shouldn't add c onstraints
