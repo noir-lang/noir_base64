@@ -1,3 +1,5 @@
+mod to_be_radix;
+
 use super::defaults::{BASE64_ELEMENTS_PER_CHUNK, BASE64_PADDING_CHAR, BYTES_PER_CHUNK};
 
 use crate::tables::{
@@ -6,6 +8,7 @@ use crate::tables::{
 };
 
 pub use crate::boundary_check::boundary_check;
+use to_be_radix::to_be_radix_64;
 
 global CONVERT_MODULO3_TO_PADDING_BYTES: [u32; 3] = [0, 2, 1];
 global PAD_1: [Field; 3] = [0, 1, 1];
@@ -105,7 +108,8 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
     ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> {
     assert((HasPadding == 0) | (HasPadding == 1), "invalid HasPadding parameter");
     // The max number of output Base64 values can be derived from the max input size
-    let mut result_arr: [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] = [
+    let mut result_arr
+        : [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] = [
         0; ((MAX_INPUT_LEN * 8) / 6)
             + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2))
             + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))
@@ -213,7 +217,8 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
 
     // we can use `from_parts_unchecked` here because the table BASE64_ENCODE_BE_VAR_TABLE (and it's URL equivalent)
     // will produce an error if a nonzero input is given past `final_length`
-    let mut r: BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> =
+    let mut r
+        : BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> =
         BoundedVec::from_parts_unchecked(result_arr, final_length);
 
     r
@@ -259,7 +264,7 @@ fn split_into_six_bit_chunks<let InputBytes: u32, let OutputElements: u32, let H
                 slice += input[i * BYTES_PER_CHUNK + j] as Field;
             }
             // extract the 6-bit values from the Field element
-            let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = slice.to_be_radix(64);
+            let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = to_be_radix_64(slice);
             for j in 0..BASE64_ELEMENTS_PER_CHUNK {
                 result[i * BASE64_ELEMENTS_PER_CHUNK + j] = slice_base64_chunks[j];
             }
@@ -282,7 +287,7 @@ fn split_into_six_bit_chunks<let InputBytes: u32, let OutputElements: u32, let H
         }
 
         // extract the 6-bit values from the Field element
-        let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = slice.to_be_radix(64);
+        let slice_base64_chunks: [u8; BASE64_ELEMENTS_PER_CHUNK] = to_be_radix_64(slice);
         for i in 0..num_elements_in_final_chunk {
             // If padding is enabled, we can skip setting the last `non_padded_output_length` chars
             // N.B. if statement is compile time so shouldn't add c onstraints
