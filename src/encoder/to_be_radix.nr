@@ -12,10 +12,46 @@ pub(crate) fn to_be_radix_64<let N: u32>(x: Field) -> [u8; N] {
     // Because the base64 decomposition has more elements than the bytes decomposition,
     // it turns out `N * 3 / 4` is enough bytes for this.
     let bytes = x.to_le_bytes::<N * 3 / 4>();
-    let mut result = [0; N];
+
+    // Safety: we check this below
+    let result = unsafe { to_be_radix_64_decomposition(bytes) };
+
+    let mut byte_index = 0;
+
+    for index in 0..result.len() {
+        let result_index = result.len() - index - 1;
+        let index_mod_4 = index % 4;
+
+        let byte0 = bytes[byte_index] as u16;
+        let byte1 = bytes[byte_index + 1] as u16;
+        let byte2 = if byte_index + 2 < bytes.len() {
+            bytes[byte_index + 2] as u16
+        } else {
+            0
+        };
+
+        // The math here comes from reversing the math in `to_be_radix_64_decomposition`
+        let result = result[result_index] as u16;
+        if index_mod_4 == 0 {
+            assert_eq(result, byte0 % 64);
+        } else if index_mod_4 == 1 {
+            assert_eq(result, byte0 / 64 + byte1 * 4 % 64);
+        } else if index_mod_4 == 2 {
+            assert_eq(result, byte1 * 4 / 64 + byte2 * 16 % 64);
+        } else {
+            assert_eq(result, byte2 * 16 / 64);
+            byte_index += 3;
+        }
+    }
+
+    result
+}
+
+unconstrained fn to_be_radix_64_decomposition<let N: u32, let M: u32>(bytes: [u8; N]) -> [u8; M] {
+    let mut result = [0; M];
 
     // For the result, we start writing from the end.
-    let mut result_index = N - 1;
+    let mut result_index = M - 1;
 
     // For the first byte we can simply do `byte % 64` for the low part
     // and `byte / 64` for the high part.
