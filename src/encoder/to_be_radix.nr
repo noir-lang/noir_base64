@@ -16,31 +16,30 @@ pub(crate) fn to_be_radix_64<let N: u32>(x: Field) -> [u8; N] {
     // Safety: we check this below
     let result = unsafe { to_be_radix_64_decomposition(bytes) };
 
-    let mut byte_index = 0;
-
     for index in 0..result.len() {
         let result_index = result.len() - index - 1;
         let index_mod_4 = index % 4;
+        let byte_index = (index / 4) * 3;
 
-        let byte0 = bytes[byte_index] as u16;
-        let byte1 = bytes[byte_index + 1] as u16;
+        let byte0 = bytes[byte_index];
+        let byte1 = bytes[byte_index + 1];
         let byte2 = if byte_index + 2 < bytes.len() {
-            bytes[byte_index + 2] as u16
+            bytes[byte_index + 2]
         } else {
             0
         };
 
         // The math here comes from reversing the math in `to_be_radix_64_decomposition`
-        let result = result[result_index] as u16;
+        // We also use the fact that `(x * y) % z` is the same as `((x % z) * (y % z)) % z`.
+        let result = result[result_index];
         if index_mod_4 == 0 {
             assert_eq(result, byte0 % 64);
         } else if index_mod_4 == 1 {
-            assert_eq(result, byte0 / 64 + byte1 * 4 % 64);
+            assert_eq(result, byte0 / 64 + ((byte1 % 64) * 4) % 64);
         } else if index_mod_4 == 2 {
-            assert_eq(result, byte1 * 4 / 64 + byte2 * 16 % 64);
+            assert_eq(result, byte1 / 16 + ((((byte2 % 64) * 4) % 64) * 4) % 64);
         } else {
-            assert_eq(result, byte2 * 16 / 64);
-            byte_index += 3;
+            assert_eq(result, byte2 / 4);
         }
     }
 
