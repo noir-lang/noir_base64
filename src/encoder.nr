@@ -108,7 +108,7 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
     ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> {
     assert((HasPadding == 0) | (HasPadding == 1), "invalid HasPadding parameter");
     // The max number of output Base64 values can be derived from the max input size
-    let mut result_arr: [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] = [```
+    let mut result_arr: [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] = [
         0; ((MAX_INPUT_LEN * 8) / 6)
             + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2))
             + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))
