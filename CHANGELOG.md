@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/noir-lang/noir_base64/compare/v0.4.1...v0.4.2) (2025-07-15)
+
+
+### Bug Fixes
+
+* Don't use private `to_be_radix` from stdlib ([#47](https://github.com/noir-lang/noir_base64/issues/47)) ([6d6b289](https://github.com/noir-lang/noir_base64/commit/6d6b289729141094a8e669debd8785da6164c246))
+
 ## [0.4.1](https://github.com/noir-lang/noir_base64/compare/v0.4.0...v0.4.1) (2025-06-10)
 
 
