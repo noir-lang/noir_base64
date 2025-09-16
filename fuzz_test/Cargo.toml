@@ -1,3 +1,0 @@
-# This directory now only contains JavaScript-based fuzz testing
-# The Rust components have been removed in favor of the more efficient
-# JavaScript + Oracle approach in direct_rpc_server.js
