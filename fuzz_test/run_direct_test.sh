@@ -1,7 +1,9 @@
 #!/bin/bash
 
+# used for manually running tests
+
 echo "=== Direct Noir Base64 Oracle Test ==="
-echo "This test compares Noir base64 implementation with Node.js base64 via oracles"
+echo "This test compares Noir base64 implementation with Node.js base64"
 echo ""
 
 # Check if nargo is available
