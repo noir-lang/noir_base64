@@ -24,8 +24,20 @@ jobs:
         with:
           toolchain: nightly
 
-      - name: Run Noir tests
-        run: nargo test
+      - name: Install Node.js dependencies
+        run: |
+          cd fuzz_test
+          npm install
+          
+      - name: Start server and run tests
+        run: |
+          cd fuzz_test
+          node direct_rpc_server.js &
+          SERVER_PID=$!
+          sleep 2
+          cd ..
+          nargo test --oracle-resolver http://localhost:5556
+          kill $SERVER_PID
 
       - name: Run formatter
         run: nargo fmt --check
