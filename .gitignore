@@ -3,3 +3,9 @@ target
 .vscode
 export
 gates_report.json
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
