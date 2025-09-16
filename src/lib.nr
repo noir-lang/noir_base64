@@ -18,6 +18,8 @@ mod encoder;
 mod benchmarks;
 mod tables;
 mod boundary_check;
+mod oracle_test;
+// mod fuzz_test; // Temporarily disabled for oracle testing
 pub use encoder::{
     Base64EncodeBE as BASE64_ENCODER, Base64EncodeBENoPad as BASE64_NO_PAD_ENCODER,
     Base64EncodeBEUrlSafe as BASE64_URL_ENCODER,

@@ -1,0 +1,87 @@
+// Simple fuzz test that compares Noir base64 with Rust gRPC server
+// This is a conceptual example - actual gRPC calls from Noir would need
+// additional infrastructure
+
+
+use crate::encoder::{Base64EncodeBE as BASE64_ENCODER, Base64EncodeBENoPad as BASE64_NO_PAD_ENCODER, Base64EncodeBEUrlSafe as BASE64_URL_ENCODER, Base64EncodeBEUrlSafeWithPad as BASE64_URL_WITH_PAD_ENCODER};
+use crate::decoder::{Base64DecodeBE as BASE64_DECODER, Base64DecodeBENoPad as BASE64_NO_PAD_DECODER, Base64DecodeBEUrlSafe as BASE64_URL_DECODER, Base64EncodeBEUrlSafeWithPad as BASE64_URL_WITH_PAD_DECODER};
+
+// Mock function to simulate gRPC call to Rust server
+// In a real implementation, this would make an actual gRPC call
+unconstrained fn call_rust_grpc_encode(data: [u8; 12]) -> [u8; 16] {
+    // This is a placeholder - in reality you'd need:
+    // 1. gRPC client library for Noir
+    // 2. Network communication setup
+    // 3. Protocol buffer serialization
+    
+    // For now, we'll use a known test case
+    // "Hello World!" -> "SGVsbG8gV29ybGQh"
+    if data == [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33] {
+        [83, 71, 86, 115, 98, 71, 56, 103, 86, 50, 57, 121, 98, 71, 81, 104]
+    } else {
+        [0; 16] // Placeholder for other inputs
+    }
+}
+
+unconstrained fn call_rust_grpc_decode(data: [u8; 16]) -> [u8; 12] {
+    // Mock decode function
+    if data == [83, 71, 86, 115, 98, 71, 56, 103, 86, 50, 57, 121, 98, 71, 81, 104] {
+        [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33]
+    } else {
+        [0; 12] // Placeholder for other inputs
+    }
+}
+
+#[test]
+fn test_fuzz_encode_compare() {
+    // Test data: "Hello World!"
+    let test_data: [u8; 12] = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33];
+    
+    // Encode with Noir
+    let noir_encoded = BASE64_ENCODER::encode(test_data);
+    
+    // Encode with Rust (via gRPC)
+    let rust_encoded = call_rust_grpc_encode(test_data);
+    
+    // Compare results
+    assert(noir_encoded == rust_encoded, "Noir and Rust encoding results don't match");
+}
+
+#[test]
+fn test_fuzz_decode_compare() {
+    // Test data: "SGVsbG8gV29ybGQh" (base64 for "Hello World!")
+    let test_data: [u8; 16] = [83, 71, 86, 115, 98, 71, 56, 103, 86, 50, 57, 121, 98, 71, 81, 104];
+    
+    // Decode with Noir
+    let noir_decoded: [u8; 12] = BASE64_DECODER::decode(test_data);
+    
+    // Decode with Rust (via gRPC)
+    let rust_decoded = call_rust_grpc_decode(test_data);
+    
+    // Compare results
+    assert(noir_decoded == rust_decoded, "Noir and Rust decoding results don't match");
+}
+
+// More comprehensive fuzz test with multiple test cases
+#[test]
+fn test_fuzz_multiple_cases() {
+    // Test case 1: "Hello"
+    let test1: [u8; 5] = [72, 101, 108, 108, 111];
+    let noir1 = BASE64_ENCODER::encode(test1);
+    // Expected: "SGVsbG8=" -> [83, 71, 86, 115, 98, 71, 56, 61]
+    let expected1: [u8; 8] = [83, 71, 86, 115, 98, 71, 56, 61];
+    assert(noir1 == expected1, "Test case 1 failed");
+    
+    // Test case 2: "Hi"
+    let test2: [u8; 2] = [72, 105];
+    let noir2 = BASE64_ENCODER::encode(test2);
+    // Expected: "SGk=" -> [83, 71, 107, 61]
+    let expected2: [u8; 4] = [83, 71, 107, 61];
+    assert(noir2 == expected2, "Test case 2 failed");
+    
+    // Test case 3: Empty
+    let test3: [u8; 0] = [];
+    let noir3 = BASE64_ENCODER::encode(test3);
+    let expected3: [u8; 0] = [];
+    assert(noir3 == expected3, "Test case 3 failed");
+}

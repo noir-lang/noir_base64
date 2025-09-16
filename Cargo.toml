@@ -1,0 +1,13 @@
+[package]
+name = "noir_base64"
+type = "lib"
+authors = [""]
+compiler_version = ">=1.0.0"
+
+[[bin]]
+name = "simple_fuzz_test"
+path = "simple_fuzz_test.rs"
+
+[dependencies]
+rand = "0.8"
+base64 = "0.22"
