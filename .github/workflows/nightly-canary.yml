@@ -27,12 +27,12 @@ jobs:
       - name: Install Node.js dependencies
         run: |
           cd fuzz_test
-          npm install
+          yarn install
           
       - name: Start server and run tests
         run: |
           cd fuzz_test
-          node direct_rpc_server.js &
+          yarn tsx direct_rpc_server.ts &
           SERVER_PID=$!
           sleep 2
           cd ..
