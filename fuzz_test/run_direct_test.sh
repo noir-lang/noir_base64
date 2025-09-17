@@ -27,13 +27,13 @@ echo "Found Node.js: $(which node)"
 # Install JavaScript dependencies if needed
 if [ ! -d "node_modules" ]; then
     echo "Installing JavaScript dependencies..."
-    npm install
+    yarn install
 fi
 
-# Start JavaScript RPC server in background
-echo "Starting direct JavaScript RPC server..."
-node direct_rpc_server.js &
-JS_SERVER_PID=$!
+# Start TypeScript RPC server in background
+echo "Starting direct TypeScript RPC server..."
+yarn tsx direct_rpc_server.ts &
+TS_SERVER_PID=$!
 
 # Wait for JavaScript server to start
 sleep 2
@@ -46,6 +46,6 @@ nargo test --oracle-resolver http://localhost:5556
 
 # Clean up
 echo "Stopping server..."
-kill $JS_SERVER_PID 2>/dev/null
+kill $TS_SERVER_PID 2>/dev/null
 
 echo "Direct oracle test completed!"

@@ -1,5 +1,5 @@
 import { JSONRPCServer } from "json-rpc-2.0";
-import express from "express";
+import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { createHash } from "crypto";
@@ -11,18 +11,32 @@ app.use(bodyParser.json());
 const server = new JSONRPCServer();
 
 // Direct base64 encoding functions
-function base64EncodeStandard(data) {
+function base64EncodeStandard(data: number[]): string {
     const buffer = Buffer.from(data);
     return buffer.toString('base64');
 }
 
-function base64EncodeStandardNoPad(data) {
+function base64EncodeStandardNoPad(data: number[]): string {
     const buffer = Buffer.from(data);
     return buffer.toString('base64').replace(/=/g, '');
 }
 
+// Type definitions for the foreign call parameters
+interface ForeignCallParams {
+    function: string;
+    inputs: number[][];
+}
+
+interface ForeignCallRequest {
+    [0]: ForeignCallParams;
+}
+
+interface ForeignCallResponse {
+    values: string[][];
+}
+
 // Add the oracle method for base64 encoding
-server.addMethod("resolve_foreign_call", async (params) => {
+server.addMethod("resolve_foreign_call", async (params: ForeignCallRequest): Promise<ForeignCallResponse> => {
     console.log("Received foreign call:", JSON.stringify(params, null, 2));
     
     if (!params[0] || !params[0].function) {
@@ -33,10 +47,10 @@ server.addMethod("resolve_foreign_call", async (params) => {
     const inputs = params[0].inputs[0]; // First input array
 
     try {
-        let result;
+        let result: string;
         
         // Convert hex strings back to bytes
-        const data = inputs.map(hex => parseInt(hex, 16));
+        const data: number[] = inputs.map(hex => parseInt(hex.toString(), 16));
         
         switch (functionName) {
             case "base64_encode_standard":
@@ -52,7 +66,7 @@ server.addMethod("resolve_foreign_call", async (params) => {
         }
 
         // Convert the result string back to array of hex values
-        const resultBytes = Array.from(Buffer.from(result, 'utf8')).map(b => b.toString(16).padStart(2, '0'));
+        const resultBytes: string[] = Array.from(Buffer.from(result, 'utf8')).map(b => b.toString(16).padStart(2, '0'));
         
         console.log(`Function: ${functionName}, Input: ${data.length} bytes, Output: ${result}`);
         
@@ -63,7 +77,7 @@ server.addMethod("resolve_foreign_call", async (params) => {
     }
 });
 
-app.post("/", (req, res) => {
+app.post("/", (req: Request, res: Response) => {
     const jsonRPCRequest = req.body;
     server.receive(jsonRPCRequest).then((jsonRPCResponse) => {
         if (jsonRPCResponse) {
@@ -71,7 +85,7 @@ app.post("/", (req, res) => {
         } else {
             res.sendStatus(204);
         }
-    }).catch((error) => {
+    }).catch((error: Error) => {
         console.error("RPC Error:", error);
         res.status(500).json({
             jsonrpc: "2.0",
@@ -85,7 +99,7 @@ app.post("/", (req, res) => {
     });
 });
 
-const PORT = 5556;
+const PORT: number = 5556;
 app.listen(PORT, () => {
     console.log(`Direct JSON RPC Server running on port ${PORT}`);
     console.log("Available methods:");
