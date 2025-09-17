@@ -24,10 +24,17 @@ jobs:
         with:
           toolchain: nightly
 
-      - name: Install Node.js dependencies
+      - name: Setup Node.js and install dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.15.0
+          cache: 'yarn'
+          cache-dependency-path: 'fuzz_test/yarn.lock'
+  
+      - name: Install dependencies
         run: |
           cd fuzz_test
-          yarn install
+          yarn --immutable
           
       - name: Run all tests (including oracle tests)
         run: |
