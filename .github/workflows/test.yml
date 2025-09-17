@@ -58,15 +58,10 @@ jobs:
           cd fuzz_test
           yarn --immutable
         
-      - name: Start server and run tests
-        working-directory: fuzz_test
+      - name: Run all tests (including oracle tests)
         run: |
-          yarn tsx direct_rpc_server.ts &
-          SERVER_PID=$!
-          sleep 2
-          cd ..
-          nargo test --oracle-resolver http://localhost:5556
-          kill $SERVER_PID
+          cd fuzz_test
+          ./run_direct_test.sh
 
   format:
     runs-on: ubuntu-latest
