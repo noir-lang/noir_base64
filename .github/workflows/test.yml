@@ -52,8 +52,8 @@ jobs:
           yarn install
         
       - name: Start server and run tests
+        working-directory: fuzz_test
         run: |
-          cd fuzz_test
           yarn tsx direct_rpc_server.ts &
           SERVER_PID=$!
           sleep 2
