@@ -67,10 +67,6 @@ unconstrained fn test_oracle_url_safe_with_pad(input: [u8; 20]) -> bool {
 fn test_oracle_standard_encoding(input: [u8; 20]) {
     let result = unsafe { test_oracle_standard(input) };
     assert(result, "Standard encoding oracle test failed");
-}
-
-#[test]
-fn test_oracle_no_pad_encoding(input: [u8; 20]) {
     let result = unsafe { test_oracle_no_pad(input) };
     assert(result, "No-pad encoding oracle test failed");
 }
@@ -79,11 +75,6 @@ fn test_oracle_no_pad_encoding(input: [u8; 20]) {
 fn test_oracle_url_safe_encoding(input: [u8; 20]) {
     let result = unsafe { test_oracle_url_safe(input) };
     assert(result, "URL-safe encoding oracle test failed");
-}
-
-#[test]
-fn test_oracle_url_safe_with_pad_encoding() {
-    let input: [u8; 20] = [0; 20];
     let result = unsafe { test_oracle_url_safe_with_pad(input) };
     assert(result, "URL-safe with padding encoding oracle test failed");
 }
