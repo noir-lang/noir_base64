@@ -1,8 +1,13 @@
 use crate::encoder::{
-    Base64EncodeBE as BASE64_ENCODER, 
-    Base64EncodeBENoPad as BASE64_NO_PAD_ENCODER,
+    Base64EncodeBE as BASE64_ENCODER, Base64EncodeBENoPad as BASE64_NO_PAD_ENCODER,
     Base64EncodeBEUrlSafe as BASE64_URL_SAFE_ENCODER,
     Base64EncodeBEUrlSafeWithPad as BASE64_URL_SAFE_WITH_PAD_ENCODER,
+};
+
+use crate::decoder::{
+    Base64DecodeBE as BASE64_DECODER, Base64DecodeBENoPad as BASE64_NO_PAD_DECODER,
+    Base64DecodeBEUrlSafe as BASE64_URL_SAFE_DECODER,
+    Base64DecodeBEUrlSafeWithPad as BASE64_URL_SAFE_WITH_PAD_DECODER,
 };
 
 // Oracle function for standard base64 encoding (calls Node.js server)
@@ -79,3 +84,30 @@ fn test_oracle_url_safe_encoding(input: [u8; 20]) {
     assert(result, "URL-safe with padding encoding oracle test failed");
 }
 
+#[test]
+fn test_standard_decoding(input: [u8; 20]) {
+    let noir_encoded = BASE64_ENCODER::encode(input);
+    let noir_decoded = BASE64_DECODER::decode(noir_encoded);
+    assert(noir_decoded == input, "Standard round-trip test failed");
+}
+
+#[test]
+fn test_standard_no_pad_decoding(input: [u8; 20]) {
+    let node_encoded = BASE64_NO_PAD_ENCODER::encode(input);
+    let noir_decoded = BASE64_NO_PAD_DECODER::decode(node_encoded);
+    assert(noir_decoded == input, "Standard no-pad round-trip test failed");
+}
+
+#[test]
+fn test_url_safe_decoding(input: [u8; 20]) {
+    let node_encoded = BASE64_URL_SAFE_ENCODER::encode(input);
+    let noir_decoded = BASE64_URL_SAFE_DECODER::decode(node_encoded);
+    assert(noir_decoded == input, "URL-safe round-trip test failed");
+}
+
+#[test]
+fn test_url_safe_with_pad_decoding(input: [u8; 20]) {
+    let node_encoded = BASE64_URL_SAFE_WITH_PAD_ENCODER::encode(input);
+    let noir_decoded = BASE64_URL_SAFE_WITH_PAD_DECODER::decode(node_encoded);
+    assert(noir_decoded == input, "URL-safe with padding round-trip test failed");
+}

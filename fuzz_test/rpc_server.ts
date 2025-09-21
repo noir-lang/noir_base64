@@ -38,6 +38,7 @@ function base64EncodeUrlSafeWithPad(data: number[]): string {
   return base64Url;
 }
 
+
 // Type definitions for the foreign call parameters
 interface ForeignCallParams {
     function: string;
@@ -85,6 +86,7 @@ server.addMethod("resolve_foreign_call", async (params: ForeignCallRequest): Pro
             case "base64_encode_url_safe_with_pad":
                 result = base64EncodeUrlSafeWithPad(data);
                 break;
+                
                 
             default:
                 throw new Error(`Unknown function: ${functionName}`);
