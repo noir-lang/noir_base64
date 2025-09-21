@@ -22,7 +22,8 @@ mod oracle_test;
 pub use encoder::{
     Base64EncodeBE as BASE64_ENCODER, Base64EncodeBENoPad as BASE64_NO_PAD_ENCODER,
     Base64EncodeBEUrlSafe as BASE64_URL_ENCODER,
-    Base64EncodeBEUrlSafeWithPad as BASE64_URL_WITH_PAD_ENCODER,
+    Base64EncodeBEUrlSafeWithPad as BASE64_URL_WITH_PAD_ENCODER
+
 };
 
 mod decoder;

@@ -21,6 +21,23 @@ function base64EncodeStandardNoPad(data: number[]): string {
     return buffer.toString('base64').replace(/=/g, '');
 }
 
+function base64EncodeUrlSafe(data: number[]): string {
+    const buffer = Buffer.from(data);
+    return buffer.toString('base64url');
+}
+
+function base64EncodeUrlSafeWithPad(data: number[]): string {
+    // Step 1: Convert to standard Base64
+  const base64 = Buffer.from(data).toString("base64");
+
+  // Step 2: Make it URL-safe by replacing + and /
+  const base64Url = base64.replace(/\+/g, "-").replace(/\//g, "_");
+  console.log("base64Url", base64Url);
+
+  // Step 3: Keep padding (=) for alignment
+  return base64Url;
+}
+
 // Type definitions for the foreign call parameters
 interface ForeignCallParams {
     function: string;
@@ -59,6 +76,14 @@ server.addMethod("resolve_foreign_call", async (params: ForeignCallRequest): Pro
                 
             case "base64_encode_standard_no_pad":
                 result = base64EncodeStandardNoPad(data);
+                break;
+                
+            case "base64_encode_url_safe":
+                result = base64EncodeUrlSafe(data);
+                break;
+                
+            case "base64_encode_url_safe_with_pad":
+                result = base64EncodeUrlSafeWithPad(data);
                 break;
                 
             default:
@@ -105,4 +130,6 @@ app.listen(PORT, () => {
     console.log("Available methods:");
     console.log("- base64_encode_standard");
     console.log("- base64_encode_standard_no_pad");
+    console.log("- base64_encode_url_safe");
+    console.log("- base64_encode_url_safe_with_pad");
 });

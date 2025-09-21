@@ -13,7 +13,6 @@ use to_be_radix::to_be_radix_64;
 global CONVERT_MODULO3_TO_PADDING_BYTES: [u32; 3] = [0, 2, 1];
 global PAD_1: [Field; 3] = [0, 1, 1];
 global PAD_2: [Field; 3] = [0, 1, 0];
-
 /// Encoder methods that use the standard Base64 Alphabet (base64) specified in RFC 4648
 /// (https://datatracker.ietf.org/doc/html/rfc4648#section-4)
 pub mod Base64EncodeBE {

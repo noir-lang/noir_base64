@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "type": "module",
   "description": "JSON RPC server for Noir base64 oracle testing",
-  "main": "direct_rpc_server.js",
+  "main": "rpc_server.js",
   "scripts": {
-    "start": "node direct_rpc_server.js",
-    "dev": "node --watch direct_rpc_server.js",
+    "start": "node rpc_server.js",
+    "dev": "node --watch rpc_server.js",
     "build": "tsc",
-    "start:ts": "yarn tsx direct_rpc_server.ts",
-    "dev:ts": "yarn tsx --watch direct_rpc_server.ts"
+    "start:ts": "yarn tsx rpc_server.ts",
+    "dev:ts": "yarn tsx --watch rpc_server.ts"
   },
   "dependencies": {
     "json-rpc-2.0": "^1.0.0",

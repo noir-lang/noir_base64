@@ -32,7 +32,7 @@ fi
 
 # Start TypeScript RPC server in background
 echo "Starting direct TypeScript RPC server..."
-yarn tsx direct_rpc_server.ts &
+yarn tsx rpc_server.ts &
 TS_SERVER_PID=$!
 
 # Wait for JavaScript server to start
