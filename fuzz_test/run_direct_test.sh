@@ -24,11 +24,6 @@ fi
 
 echo "Found Node.js: $(which node)"
 
-# Install JavaScript dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "Installing JavaScript dependencies..."
-    yarn install
-fi
 
 # Start TypeScript RPC server in background
 echo "Starting direct TypeScript RPC server..."
@@ -39,7 +34,7 @@ TS_SERVER_PID=$!
 sleep 2
 
 echo "Running Noir oracle tests..."
-cd /Users/jli/Desktop/noir-lang/noir_base64
+cd "$(dirname "$0")/.."
 
 # Run the Noir tests with oracle resolver
 nargo test --oracle-resolver http://localhost:5556
