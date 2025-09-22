@@ -54,14 +54,12 @@ jobs:
           cache-dependency-path: 'fuzz_test/yarn.lock'
 
       - name: Install dependencies
-        run: |
-          cd fuzz_test
-          yarn --immutable
+        working-directory: ./fuzz_test
+        run: yarn --immutable
         
-      - name: Run all tests (including oracle tests)
-        run: |
-          cd fuzz_test
-          ./run_direct_test.sh
+      - name: Run all tests
+        working-directory: ./fuzz_test
+        run: ./run_direct_test.sh
 
   format:
     runs-on: ubuntu-latest

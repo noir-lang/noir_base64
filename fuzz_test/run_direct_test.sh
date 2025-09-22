@@ -1,46 +1,18 @@
 #!/bin/bash
+set -eu
 
-# used for manually running tests
-
-echo "=== Direct Noir Base64 Oracle Test ==="
-echo "This test compares Noir base64 implementation with Node.js base64"
-echo ""
-
-# Check if nargo is available
-if ! command -v nargo &> /dev/null; then
-    echo "Error: nargo command not found!"
-    echo "Please install nargo or add it to your PATH"
-    exit 1
-fi
-
-echo "Found nargo: $(which nargo)"
-
-# Check if Node.js is available
-if ! command -v node &> /dev/null; then
-    echo "Error: Node.js not found!"
-    echo "Please install Node.js to run the JavaScript RPC server"
-    exit 1
-fi
-
-echo "Found Node.js: $(which node)"
-
+export RPC_PORT=8080
 
 # Start TypeScript RPC server in background
 echo "Starting direct TypeScript RPC server..."
 yarn tsx rpc_server.ts &
 TS_SERVER_PID=$!
+trap 'kill $TS_SERVER_PID' EXIT
 
 # Wait for JavaScript server to start
 sleep 2
 
-echo "Running Noir oracle tests..."
-cd "$(dirname "$0")/.."
+project_dir="$(dirname "$0")/.."
 
 # Run the Noir tests with oracle resolver
-nargo test --oracle-resolver http://localhost:5556
-
-# Clean up
-echo "Stopping server..."
-kill $TS_SERVER_PID 2>/dev/null
-
-echo "Direct oracle test completed!"
+nargo --program-dir="$project_dir" test --oracle-resolver http://localhost:${RPC_PORT}

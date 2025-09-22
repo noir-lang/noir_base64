@@ -123,7 +123,7 @@ app.post("/", (req: Request, res: Response) => {
     });
 });
 
-const PORT: number = 5556;
+const PORT: number = parseInt(process.env.RPC_PORT || "8080");
 app.listen(PORT, () => {
     console.log(`Direct JSON RPC Server running on port ${PORT}`);
     console.log("Available methods:");
