@@ -89,10 +89,6 @@ fn test_standard_decoding(input: [u8; 20]) {
     let noir_encoded = BASE64_ENCODER::encode(input);
     let noir_decoded = BASE64_DECODER::decode(noir_encoded);
     assert(noir_decoded == input, "Standard round-trip test failed");
-}
-
-#[test]
-fn test_standard_no_pad_decoding(input: [u8; 20]) {
     let node_encoded = BASE64_NO_PAD_ENCODER::encode(input);
     let noir_decoded = BASE64_NO_PAD_DECODER::decode(node_encoded);
     assert(noir_decoded == input, "Standard no-pad round-trip test failed");
@@ -103,10 +99,6 @@ fn test_url_safe_decoding(input: [u8; 20]) {
     let node_encoded = BASE64_URL_SAFE_ENCODER::encode(input);
     let noir_decoded = BASE64_URL_SAFE_DECODER::decode(node_encoded);
     assert(noir_decoded == input, "URL-safe round-trip test failed");
-}
-
-#[test]
-fn test_url_safe_with_pad_decoding(input: [u8; 20]) {
     let node_encoded = BASE64_URL_SAFE_WITH_PAD_ENCODER::encode(input);
     let noir_decoded = BASE64_URL_SAFE_WITH_PAD_DECODER::decode(node_encoded);
     assert(noir_decoded == input, "URL-safe with padding round-trip test failed");

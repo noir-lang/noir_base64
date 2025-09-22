@@ -27,14 +27,11 @@ function base64EncodeUrlSafe(data: number[]): string {
 }
 
 function base64EncodeUrlSafeWithPad(data: number[]): string {
-    // Step 1: Convert to standard Base64
+    // convert to standard Base64
   const base64 = Buffer.from(data).toString("base64");
 
-  // Step 2: Make it URL-safe by replacing + and /
+  // make it URL-safe by replacing + and /
   const base64Url = base64.replace(/\+/g, "-").replace(/\//g, "_");
-  console.log("base64Url", base64Url);
-
-  // Step 3: Keep padding (=) for alignment
   return base64Url;
 }
 
