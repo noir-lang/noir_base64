@@ -52,7 +52,6 @@ interface ForeignCallResponse {
 
 // Add the oracle method for base64 encoding
 server.addMethod("resolve_foreign_call", async (params: ForeignCallRequest): Promise<ForeignCallResponse> => {
-    console.log("Received foreign call:", JSON.stringify(params, null, 2));
     
     if (!params[0] || !params[0].function) {
         throw new Error("Invalid foreign call parameters");
@@ -91,8 +90,7 @@ server.addMethod("resolve_foreign_call", async (params: ForeignCallRequest): Pro
 
         // Convert the result string back to array of hex values
         const resultBytes: string[] = Array.from(Buffer.from(result, 'utf8')).map(b => b.toString(16).padStart(2, '0'));
-        
-        console.log(`Function: ${functionName}, Input: ${data.length} bytes, Output: ${result}`);
+    
         
         return { values: [resultBytes] };
     } catch (error) {
