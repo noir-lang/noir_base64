@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-export RPC_PORT=8080
+export RPC_PORT=8095
 
 # Start TypeScript RPC server in background
 echo "Starting direct TypeScript RPC server..."
