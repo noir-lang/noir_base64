@@ -59,7 +59,7 @@ jobs:
         
       - name: Run all tests
         working-directory: ./fuzz_test
-        run: ./run_direct_test.sh
+        run: ./run.sh
 
   format:
     runs-on: ubuntu-latest
