@@ -19,13 +19,13 @@ pub mod Base64EncodeBE {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] {
-        crate::encoder::encode::<InputBytes, 0, 1>(input)
+        crate::encoder::encode::<InputBytes, 0u1, 1>(input)
     }
 
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> {
-        crate::encoder::encode_var::<_, 0, 1>(input)
+        crate::encoder::encode_var::<_, 0u1, 1>(input)
     }
 }
 
@@ -35,13 +35,13 @@ pub mod Base64EncodeBENoPad {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2)) + (((InputBytes % 3) / 2))] {
-        crate::encoder::encode::<InputBytes, 0, 0>(input)
+        crate::encoder::encode::<InputBytes, 0u1, 0>(input)
     }
 
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, (((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2)) + (((MAX_INPUT_LEN % 3) / 2)))> {
-        crate::encoder::encode_var::<_, 0, 0>(input)
+        crate::encoder::encode_var::<_, 0u1, 0>(input)
     }
 }
 
@@ -51,13 +51,13 @@ pub mod Base64EncodeBEUrlSafe {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2)) + (((InputBytes % 3) / 2))] {
-        crate::encoder::encode::<_, 1, 0>(input)
+        crate::encoder::encode::<_, 1u1, 0>(input)
     }
 
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, (((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2)) + (((MAX_INPUT_LEN % 3) / 2)))> {
-        crate::encoder::encode_var::<_, 1, 0>(input)
+        crate::encoder::encode_var::<_, 1u1, 0>(input)
     }
 }
 
@@ -67,12 +67,12 @@ pub mod Base64EncodeBEUrlSafeWithPad {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] {
-        crate::encoder::encode::<_, 1, 1>(input)
+        crate::encoder::encode::<_, 1u1, 1>(input)
     }
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> {
-        crate::encoder::encode_var::<_, 1, 1>(input)
+        crate::encoder::encode_var::<_, 1u1, 1>(input)
     }
 }
 
@@ -215,7 +215,7 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
 
     // we can use `from_parts_unchecked` here because the table BASE64_ENCODE_BE_VAR_TABLE (and it's URL equivalent)
     // will produce an error if a nonzero input is given past `final_length`
-    let mut r: BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> =
+    let r: BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> =
         BoundedVec::from_parts_unchecked(result_arr, final_length);
 
     r
@@ -343,7 +343,7 @@ fn test_encode_elements() {
         22, 19, 36, 0, 33, 18, 25, 57, 62, 22, 4, 17, 33, 10, 33, 23, 45, 37, 20,
     ];
 
-    let ascii_result = crate::encoder::encode_elements::<_, 0>(input);
+    let ascii_result = crate::encoder::encode_elements::<_, 0u1>(input);
 
     assert(ascii_result == ascii_expected);
 }
@@ -545,7 +545,7 @@ fn test_encode() {
 #[test]
 fn test_base64_encode_slash() {
     let input: [u8; 1] = [63]; // '/' in Base64
-    let result: [u8; 1] = crate::encoder::encode_elements::<_, 0>(input);
+    let result: [u8; 1] = crate::encoder::encode_elements::<_, 0u1>(input);
 
     // Should map to '/' in ASCII, which is 47
     assert(result[0] == 47);
