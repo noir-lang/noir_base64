@@ -14,13 +14,13 @@ pub mod Base64DecodeBE {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 1u1, 0u1>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 1_u1, 0_u1>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1u1, 0u1>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1_u1, 0_u1>(input)
     }
 }
 
@@ -30,13 +30,13 @@ pub mod Base64DecodeBENoPad {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 0u1, 0u1>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 0_u1, 0_u1>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0u1, 0u1>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0_u1, 0_u1>(input)
     }
 }
 
@@ -46,13 +46,13 @@ pub mod Base64DecodeBEUrlSafe {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 0u1, 1u1>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 0_u1, 1_u1>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0u1, 1u1>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0_u1, 1_u1>(input)
     }
 }
 
@@ -62,13 +62,13 @@ pub mod Base64DecodeBEUrlSafeWithPad {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 1u1, 1u1>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 1_u1, 1_u1>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1u1, 1u1>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1_u1, 1_u1>(input)
     }
 }
 
