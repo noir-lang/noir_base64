@@ -121,7 +121,7 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
 
     // Step 1: convert the input into six-bit chunks. We can map each chunk into Base64 values.
     let raw: [u8; ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))] =
-        crate::encoder::split_into_six_bit_chunks::<_, _, 1>(input.storage());
+        crate::encoder::split_into_six_bit_chunks::<_, _, HasPadding>(input.storage());
 
     let real_length = input.len();
     // The input length modulo 3 can be used to determine the number of padding bytes
@@ -669,4 +669,33 @@ fn test_encode_var_multi_chunks() {
     assert(result == expected);
     let result = Base64EncodeBEUrlSafe::encode_var(input);
     assert(result == expected_no_pad);
+}
+
+#[test]
+fn test_encode_var_matches_fixed_encode_for_partial_chunks() {
+    // Verify encode_var produces same output as fixed encode for inputs where len % 3 != 0
+
+    // For a single byte
+    let input_arr: [u8; 1] = [125]; // '}'
+    let input_vec: BoundedVec<u8, 1> = BoundedVec::from_array(input_arr);
+
+    let fixed_result = Base64EncodeBEUrlSafe::encode(input_arr);
+    let var_result = Base64EncodeBEUrlSafe::encode_var(input_vec);
+
+    assert(var_result.len() as u32 == fixed_result.len());
+    for i in 0..fixed_result.len() {
+        assert(var_result.get(i) == fixed_result[i]);
+    }
+
+    // For a two byte input
+    let input_arr: [u8; 2] = [97, 98]; // 'ab'
+    let input_vec: BoundedVec<u8, 2> = BoundedVec::from_array(input_arr);
+
+    let fixed_result = Base64EncodeBEUrlSafe::encode(input_arr);
+    let var_result = Base64EncodeBEUrlSafe::encode_var(input_vec);
+
+    assert(var_result.len() as u32 == fixed_result.len());
+    for i in 0..fixed_result.len() {
+        assert(var_result.get(i) == fixed_result[i]);
+    }
 }
