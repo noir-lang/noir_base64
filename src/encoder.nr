@@ -19,13 +19,13 @@ pub mod Base64EncodeBE {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] {
-        crate::encoder::encode::<InputBytes, 0_u1, 1>(input)
+        crate::encoder::encode::<InputBytes, false, 1>(input)
     }
 
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> {
-        crate::encoder::encode_var::<_, 0_u1, 1>(input)
+        crate::encoder::encode_var::<_, false, 1>(input)
     }
 }
 
@@ -35,13 +35,13 @@ pub mod Base64EncodeBENoPad {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2)) + (((InputBytes % 3) / 2))] {
-        crate::encoder::encode::<InputBytes, 0_u1, 0>(input)
+        crate::encoder::encode::<InputBytes, false, 0>(input)
     }
 
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, (((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2)) + (((MAX_INPUT_LEN % 3) / 2)))> {
-        crate::encoder::encode_var::<_, 0_u1, 0>(input)
+        crate::encoder::encode_var::<_, false, 0>(input)
     }
 }
 
@@ -51,13 +51,13 @@ pub mod Base64EncodeBEUrlSafe {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2)) + (((InputBytes % 3) / 2))] {
-        crate::encoder::encode::<_, 1_u1, 0>(input)
+        crate::encoder::encode::<_, true, 0>(input)
     }
 
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, (((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2)) + (((MAX_INPUT_LEN % 3) / 2)))> {
-        crate::encoder::encode_var::<_, 1_u1, 0>(input)
+        crate::encoder::encode_var::<_, true, 0>(input)
     }
 }
 
@@ -67,12 +67,12 @@ pub mod Base64EncodeBEUrlSafeWithPad {
     pub fn encode<let InputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * 3) + (((InputBytes % 3) / 2) * 2)] {
-        crate::encoder::encode::<_, 1_u1, 1>(input)
+        crate::encoder::encode::<_, true, 1>(input)
     }
     pub fn encode_var<let MAX_INPUT_LEN: u32>(
         input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * 3) + (((MAX_INPUT_LEN % 3) / 2) * 2)> {
-        crate::encoder::encode_var::<_, 1_u1, 1>(input)
+        crate::encoder::encode_var::<_, true, 1>(input)
     }
 }
 
@@ -81,14 +81,14 @@ pub mod Base64EncodeBEUrlSafeWithPad {
  * @tparam InputElements: The size of the array being encoded
  * @tparam UseUrlTable: are we encoding using the URL and Filename Safe Alphabet, or standard Base64 Alphabet? 
  **/
-fn encode_elements<let InputElements: u32, let UseUrlTable: u1>(
+fn encode_elements<let InputElements: u32, let UseUrlTable: bool>(
     input: [u8; InputElements],
 ) -> [u8; InputElements] {
     let mut result: [u8; InputElements] = [0; InputElements];
 
     for i in 0..InputElements {
         let index = input[i] as u32;
-        let token: u8 = if UseUrlTable == 1 {
+        let token: u8 = if UseUrlTable {
             BASE64URL_ENCODE_BE_TABLE[index]
         } else {
             BASE64_ENCODE_BE_TABLE[index]
@@ -102,7 +102,7 @@ fn encode_elements<let InputElements: u32, let UseUrlTable: u1>(
 /**
  * @brief Encode a variable-length ASCII string into Base64 values
  **/
-fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
+fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: bool, let HasPadding: u32>(
     input: BoundedVec<u8, MAX_INPUT_LEN>,
     ) -> BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> {
     assert((HasPadding == 0) | (HasPadding == 1), "invalid HasPadding parameter");
@@ -205,7 +205,7 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u1, let HasPadding: u32>(
         let encoding_index = encoding_index as u32;
 
         // Note: this `if` condition is known at compile time so should not incur additional constraints
-        let token: u8 = if UseURLTable == 1 {
+        let token: u8 = if UseURLTable {
             BASE64_ENCODE_BE_VAR_TABLE[encoding_index]
         } else {
             BASE64URL_ENCODE_BE_VAR_TABLE[encoding_index]
@@ -303,7 +303,7 @@ fn split_into_six_bit_chunks<let InputBytes: u32, let OutputElements: u32, let H
     result
 }
 
-fn encode<let InputBytes: u32, let UseUrlTable: u1, let UsePadding: u32>(
+fn encode<let InputBytes: u32, let UseUrlTable: bool, let UsePadding: u32>(
     input: [u8; InputBytes],
     ) -> [u8; ((InputBytes * 8) / 6) + (((InputBytes % 3) % 2) * (1 + UsePadding * 2)) + (((InputBytes % 3) / 2) * (1 + UsePadding))] {
     assert((UsePadding == 0 as u32) | (UsePadding == 1 as u32), "UsePadding must be 0 or 1");
@@ -344,7 +344,7 @@ fn test_encode_elements() {
         22, 19, 36, 0, 33, 18, 25, 57, 62, 22, 4, 17, 33, 10, 33, 23, 45, 37, 20,
     ];
 
-    let ascii_result = crate::encoder::encode_elements::<_, 0_u1>(input);
+    let ascii_result = crate::encoder::encode_elements::<_, false>(input);
 
     assert(ascii_result == ascii_expected);
 }
@@ -546,7 +546,7 @@ fn test_encode() {
 #[test]
 fn test_base64_encode_slash() {
     let input: [u8; 1] = [63]; // '/' in Base64
-    let result: [u8; 1] = crate::encoder::encode_elements::<_, 0_u1>(input);
+    let result: [u8; 1] = crate::encoder::encode_elements::<_, false>(input);
 
     // Should map to '/' in ASCII, which is 47
     assert(result[0] == 47);
