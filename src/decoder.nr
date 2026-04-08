@@ -14,13 +14,13 @@ pub mod Base64DecodeBE {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 1_u1, 0_u1>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 1_u8, 0_u8>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1_u1, 0_u1>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1_u8, 0_u8>(input)
     }
 }
 
@@ -30,13 +30,13 @@ pub mod Base64DecodeBENoPad {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 0_u1, 0_u1>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 0_u8, 0_u8>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0_u1, 0_u1>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0_u8, 0_u8>(input)
     }
 }
 
@@ -46,13 +46,13 @@ pub mod Base64DecodeBEUrlSafe {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 0_u1, 1_u1>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 0_u8, 1_u8>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0_u1, 1_u1>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0_u8, 1_u8>(input)
     }
 }
 
@@ -62,13 +62,13 @@ pub mod Base64DecodeBEUrlSafeWithPad {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, 1_u1, 1_u1>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 1_u8, 1_u8>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1_u1, 1_u1>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1_u8, 1_u8>(input)
     }
 }
 
@@ -111,9 +111,11 @@ unconstrained fn __get_num_padding_chars_var<let InputElements: u32>(
  *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
  *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
  **/
-fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let UseURLTable: u1>(
+fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: u8, let UseURLTable: u8>(
     input: [u8; InputElements],
 ) -> [u8; OutputBytes] {
+    std::static_assert(Pad < 2, "Pad must be 0 or 1");
+    std::static_assert(UseURLTable < 2, "UseURLTable must be 0 or 1");
     let rem = OutputBytes % 3;
     // Calculate the number of padding characters and the length of the input without padding
     let num_padding_chars = if rem == 1 {
@@ -253,9 +255,11 @@ fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let UseURLT
  *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
  *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
  **/
-pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u1, let UseURLTable: u1>(
+pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u8, let UseURLTable: u8>(
     input: BoundedVec<u8, InputElements>,
 ) -> BoundedVec<u8, OutputBytes> {
+    std::static_assert(Pad < 2, "Pad must be 0 or 1");
+    std::static_assert(UseURLTable < 2, "UseURLTable must be 0 or 1");
     // We don't know how many padding bytes the input string contains - we use an unconstrained fn to return a *claim* that we will later validate
     let (has_first_padding_byte_claim, has_second_padding_byte_claim) = if (Pad == 1) {
         // Safety: get claims about whether the bytes input[input.len() - 2] and input[input.len() - 1] are padding chars
