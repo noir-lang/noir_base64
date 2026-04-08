@@ -14,13 +14,13 @@ pub mod Base64DecodeBE {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, true, false>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 1_u8, 0_u8>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, true, false>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1_u8, 0_u8>(input)
     }
 }
 
@@ -30,13 +30,13 @@ pub mod Base64DecodeBENoPad {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, false, false>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 0_u8, 0_u8>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, false, false>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0_u8, 0_u8>(input)
     }
 }
 
@@ -46,13 +46,13 @@ pub mod Base64DecodeBEUrlSafe {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, false, true>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 0_u8, 1_u8>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, false, true>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 0_u8, 1_u8>(input)
     }
 }
 
@@ -62,13 +62,13 @@ pub mod Base64DecodeBEUrlSafeWithPad {
     pub fn decode<let InputBytes: u32, let OutputBytes: u32>(
         input: [u8; InputBytes],
     ) -> [u8; OutputBytes] {
-        crate::decoder::decode::<InputBytes, OutputBytes, true, true>(input)
+        crate::decoder::decode::<InputBytes, OutputBytes, 1_u8, 1_u8>(input)
     }
 
     pub fn decode_var<let MaxInputBytes: u32, let MaxOutputBytes: u32>(
         input: BoundedVec<u8, MaxInputBytes>,
     ) -> BoundedVec<u8, MaxOutputBytes> {
-        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, true, true>(input)
+        crate::decoder::decode_var::<MaxInputBytes, MaxOutputBytes, 1_u8, 1_u8>(input)
     }
 }
 
@@ -111,9 +111,11 @@ unconstrained fn __get_num_padding_chars_var<let InputElements: u32>(
  *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
  *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
  **/
-fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: bool, let UseURLTable: bool>(
+fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: u8, let UseURLTable: u8>(
     input: [u8; InputElements],
 ) -> [u8; OutputBytes] {
+    std::static_assert(Pad < 2, "Pad must be 0 or 1");
+    std::static_assert(UseURLTable < 2, "UseURLTable must be 0 or 1");
     let rem = OutputBytes % 3;
     // Calculate the number of padding characters and the length of the input without padding
     let num_padding_chars = if rem == 1 {
@@ -177,7 +179,7 @@ fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: bool, let UseUR
                 let offset = i * BASE64_ELEMENTS_PER_CHUNK + j;
                 let input_byte: u8 = input[offset];
                 let index = input_byte as u32;
-                let decoded = if UseURLTable {
+                let decoded = if UseURLTable == 1 {
                     BASE64_DECODE_BE_URL_TABLE[index]
                 } else {
                     BASE64_DECODE_BE_TABLE[index]
@@ -215,7 +217,7 @@ fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: bool, let UseUR
             let offset = base64_offset + j;
             let input_byte: u8 = input[offset];
             let index = input_byte as u32;
-            let decoded = if UseURLTable {
+            let decoded = if UseURLTable == 1 {
                 BASE64_DECODE_BE_URL_TABLE[index]
             } else {
                 BASE64_DECODE_BE_TABLE[index]
@@ -253,11 +255,13 @@ fn decode<let InputElements: u32, let OutputBytes: u32, let Pad: bool, let UseUR
  *        Each Base64 value is 6 bits. This method will produce a byte array where data is concatenated so that there are no sparse bits
  *        (e.g. encoding 4 ASCII values produces 24 bits of Base64 data = 3 bytes of output data)
  **/
-pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: bool, let UseURLTable: bool>(
+pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u8, let UseURLTable: u8>(
     input: BoundedVec<u8, InputElements>,
 ) -> BoundedVec<u8, OutputBytes> {
+    std::static_assert(Pad < 2, "Pad must be 0 or 1");
+    std::static_assert(UseURLTable < 2, "UseURLTable must be 0 or 1");
     // We don't know how many padding bytes the input string contains - we use an unconstrained fn to return a *claim* that we will later validate
-    let (has_first_padding_byte_claim, has_second_padding_byte_claim) = if (Pad) {
+    let (has_first_padding_byte_claim, has_second_padding_byte_claim) = if (Pad == 1) {
         // Safety: get claims about whether the bytes input[input.len() - 2] and input[input.len() - 1] are padding chars
         // we validate this later on by requiring these characters equal BASE64_PADDING_CHAR by looking up BASE64_DECODE_BE_VAR_TABLE
         unsafe {
@@ -268,7 +272,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: bool, l
     };
 
     // num_padding_chars is a claim that depends on has_first_padding_byte_claim and has_second_padding_byte_claim being correct
-    let num_padding_chars: u32 = if Pad {
+    let num_padding_chars: u32 = if Pad == 1 {
         has_first_padding_byte_claim as u32 + has_second_padding_byte_claim as u32
     } else {
         0
@@ -300,7 +304,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: bool, l
                 let input_byte = input[offset];
 
                 let mut decode_index: Field = 0;
-                if Pad {
+                if Pad == 1 {
                     let mut might_be_second_padding_char = 0;
                     let mut might_be_first_padding_char = 0;
                     // These if statements should not cost extra gates as the condition is known at compile time
@@ -342,7 +346,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: bool, l
                 }
                 decode_index.assert_max_bit_size::<32>();
                 let decode_index = decode_index as u32;
-                let decoded = if UseURLTable {
+                let decoded = if UseURLTable == 1 {
                     BASE64_DECODE_BE_URL_VAR_TABLE[decode_index]
                 } else {
                     BASE64_DECODE_BE_VAR_TABLE[decode_index]
@@ -379,7 +383,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: bool, l
             let input_byte = input[offset];
 
             let mut decode_index: Field = 0;
-            if Pad {
+            if Pad == 1 {
                 let mut might_be_second_padding_char = 0;
                 let mut might_be_first_padding_char = 0;
                 // These if statements should not cost extra gates as the condition is known at compile time
@@ -412,7 +416,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: bool, l
             decode_index.assert_max_bit_size::<32>();
             let decode_index = decode_index as u32;
 
-            let decoded = if UseURLTable {
+            let decoded = if UseURLTable == 1 {
                 BASE64_DECODE_BE_URL_VAR_TABLE[decode_index]
             } else {
                 BASE64_DECODE_BE_VAR_TABLE[decode_index]
@@ -442,7 +446,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: bool, l
         }
     }
 
-    if Pad {
+    if Pad == 1 {
         assert(input_length % 4 == 0, "base64 encoded strings must be a multiple of 4 bytes");
     }
 
