@@ -13,6 +13,12 @@ fuzz_test_dir="$project_dir/fuzz_test"
     # Run the TypeScript oracle server from its package directory.
     cd "$fuzz_test_dir"
 
+    # Install oracle server dependencies when running from a fresh clone.
+    if [ ! -d "node_modules" ]; then
+        echo "Installing RPC server dependencies..."
+        yarn install --frozen-lockfile 2>&1 || yarn install 2>&1
+    fi
+
     # Start the TypeScript RPC server in the background.
     echo "Starting direct TypeScript RPC server..."
     yarn tsx rpc_server.ts &
