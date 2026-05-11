@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.0](https://github.com/noir-lang/noir_base64/compare/v0.4.2...v0.5.0) (2026-05-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* bump minimum supported noir version to 1.0.0-beta.8  ([#51](https://github.com/noir-lang/noir_base64/issues/51))
+
+### Bug Fixes
+
+* Remove usage of `u1` type ([#53](https://github.com/noir-lang/noir_base64/issues/53)) ([a721075](https://github.com/noir-lang/noir_base64/commit/a721075bc895da21cbbf02ae833c3dea698c9495))
+* Use `HasPadding` parameter in `encode_var` instead of hardcoded value ([#50](https://github.com/noir-lang/noir_base64/issues/50)) ([16365a3](https://github.com/noir-lang/noir_base64/commit/16365a36e786cbd968d1be25ced3f3552d2e2366))
+
+
+### Miscellaneous Chores
+
+* Bump minimum supported noir version to 1.0.0-beta.8  ([#51](https://github.com/noir-lang/noir_base64/issues/51)) ([6003c58](https://github.com/noir-lang/noir_base64/commit/6003c58cf626ebdd9ea0ce728ed97ca1e6afc5ab))
+
 ## [0.4.2](https://github.com/noir-lang/noir_base64/compare/v0.4.1...v0.4.2) (2025-07-15)
 
 
