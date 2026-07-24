@@ -108,7 +108,7 @@ fn test_all_zeros_mask_accepted_when_limit_at_range() {
     let _ = assert_boundary_mask::<8>([0; 8], 8);
 }
 
-// Other malicious masks the constraints already reject — pin that behavior.
+// Other malicious masks the constraints already reject - pin that behavior.
 #[test(should_fail)]
 fn test_mask_with_wrong_transition_rejected() {
     // transition at 5 instead of 3
