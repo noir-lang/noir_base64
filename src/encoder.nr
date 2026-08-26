@@ -219,7 +219,7 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u8, let HasPadding: u32>(
     // we can use `from_parts_unchecked` here because the table BASE64_ENCODE_BE_VAR_TABLE (and it's URL equivalent)
     // will produce an error if a nonzero input is given past `final_length`
     let r: BoundedVec<u8, ((MAX_INPUT_LEN * 8) / 6) + (((MAX_INPUT_LEN % 3) % 2) * (1 + HasPadding * 2)) + (((MAX_INPUT_LEN % 3) / 2) * (1 + HasPadding))> =
-        BoundedVec::from_parts_unchecked(result_arr, final_length);
+        BoundedVec::from_parts(result_arr, final_length);
 
     r
 }
