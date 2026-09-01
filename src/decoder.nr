@@ -454,7 +454,7 @@ pub fn decode_var<let InputElements: u32, let OutputBytes: u32, let Pad: u8, let
         assert(has_second_padding_byte_claim, "if first byte contains padding so must the second");
     }
     let output_length = ((input_length * 3) / 4) - num_padding_chars;
-    BoundedVec::from_parts_unchecked(result, output_length)
+    BoundedVec::from_parts(result, output_length)
 }
 
 #[test]
