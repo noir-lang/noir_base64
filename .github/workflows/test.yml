@@ -58,8 +58,7 @@ jobs:
         run: yarn --immutable
         
       - name: Run all tests
-        working-directory: ./fuzz_test
-        run: ./run.sh
+        run: ./scripts/run.sh
 
   format:
     runs-on: ubuntu-latest
