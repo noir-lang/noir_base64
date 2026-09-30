@@ -2,14 +2,16 @@ name: Benchmarks
 
 on:
   push:
-   branches:
-    - main
+    branches:
+      - main
   pull_request:
 
 jobs:
   test:
     name: Benchmark library
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
