@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/noir-lang/noir_base64/compare/v0.5.0...v0.5.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* Reject all-zeroes mask when limit &lt; Range ([#60](https://github.com/noir-lang/noir_base64/issues/60)) ([2d32816](https://github.com/noir-lang/noir_base64/commit/2d3281692a1672f147ab8b445e288a82bcce2dcd))
+* Use BoundedVec::from_parts ([#61](https://github.com/noir-lang/noir_base64/issues/61)) ([6b85980](https://github.com/noir-lang/noir_base64/commit/6b85980fb6f072d346354b3cdec1fe1741b88154))
+
 ## [0.5.0](https://github.com/noir-lang/noir_base64/compare/v0.4.2...v0.5.0) (2026-05-11)
 
 
