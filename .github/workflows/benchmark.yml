@@ -19,12 +19,12 @@ jobs:
       - name: Install Nargo
         uses: noir-lang/noirup@v0.1.5
         with:
-          toolchain: v1.0.0-beta.8
+          toolchain: v1.0.0
 
       - name: Install bb
         run: |
-          npm install -g bbup
-          bbup -nv 1.0.0-beta.3
+          curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/next/barretenberg/bbup/install | bash
+          ~/.bb/bbup -v 6.0.0
           sudo apt install libc++-dev
 
       - name: Build Noir benchmark programs
