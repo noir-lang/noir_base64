@@ -36,8 +36,7 @@ jobs:
         run: yarn --immutable
           
       - name: Run all tests (including oracle tests)
-        working-directory: ./fuzz_test
-        run: ./run_direct_test.sh
+        run: ./scripts/run.sh
 
       - name: Run formatter
         run: nargo fmt --check
@@ -52,4 +51,3 @@ jobs:
         with:
           update_existing: true
           filename: .github/NIGHTLY_CANARY_DIED.md
-      
