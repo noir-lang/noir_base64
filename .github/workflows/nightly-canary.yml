@@ -33,7 +33,7 @@ jobs:
   
       - name: Install dependencies
         working-directory: ./fuzz_test
-        run: yarn --immutable
+        run: yarn install --frozen-lockfile
           
       - name: Run all tests (including oracle tests)
         working-directory: ./fuzz_test
