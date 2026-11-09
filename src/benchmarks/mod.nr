@@ -65,4 +65,7 @@ fn test_no_pad_benchmarks_roundtrip() {
         bench_decode_610_var_no_pad(BoundedVec::from_array(encoded))
             == BoundedVec::from_array(input),
     );
+
+    let input: BoundedVec<u8, 610> = BoundedVec::from_array(input);
+    assert(bench_decode_610_var_no_pad(bench_encode_610_var_no_pad(input)) == input);
 }

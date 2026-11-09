@@ -161,7 +161,11 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u8, let HasPadding: u32>(
         let index = raw[0] as Field + boundary_flags[0] * 64;
         index.assert_max_bit_size::<32>();
         let index = index as u32;
-        result_arr[0] = BASE64_ENCODE_BE_VAR_TABLE[index];
+        result_arr[0] = if UseURLTable == 1 {
+            BASE64URL_ENCODE_BE_VAR_TABLE[index]
+        } else {
+            BASE64_ENCODE_BE_VAR_TABLE[index]
+        };
     }
 
     let mut previous_was_first_padding_byte = 0;
@@ -208,9 +212,9 @@ fn encode_var<let MAX_INPUT_LEN: u32, let UseURLTable: u8, let HasPadding: u32>(
 
         // Note: this `if` condition is known at compile time so should not incur additional constraints
         let token: u8 = if UseURLTable == 1 {
-            BASE64_ENCODE_BE_VAR_TABLE[encoding_index]
-        } else {
             BASE64URL_ENCODE_BE_VAR_TABLE[encoding_index]
+        } else {
+            BASE64_ENCODE_BE_VAR_TABLE[encoding_index]
         };
         (token as Field).assert_max_bit_size::<7>();
         result_arr[i] = token;
@@ -701,4 +705,18 @@ fn test_encode_var_matches_fixed_encode_for_partial_chunks() {
     for i in 0..fixed_result.len() {
         assert(var_result.get(i) == fixed_result[i]);
     }
+}
+
+#[test]
+fn test_encode_var_alphabets() {
+    // [251, 255, 239] encodes to "+//v" in the standard alphabet and "-__v" in the URL-safe
+    // alphabet, so the first three characters depend on the alphabet
+    let input: BoundedVec<u8, 3> = BoundedVec::from_array([251, 255, 239]);
+    let expected: BoundedVec<u8, 4> = BoundedVec::from_array([43, 47, 47, 118]);
+    let expected_url_safe: BoundedVec<u8, 4> = BoundedVec::from_array([45, 95, 95, 118]);
+
+    assert(Base64EncodeBE::encode_var(input) == expected);
+    assert(Base64EncodeBENoPad::encode_var(input) == expected);
+    assert(Base64EncodeBEUrlSafe::encode_var(input) == expected_url_safe);
+    assert(Base64EncodeBEUrlSafeWithPad::encode_var(input) == expected_url_safe);
 }
