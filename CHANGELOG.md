@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/noir-lang/noir_base64/compare/v0.5.1...v0.5.2) (2026-11-09)
+
+
+### Bug Fixes
+
+* Use the selected alphabet in variable-length encoding ([#66](https://github.com/noir-lang/noir_base64/issues/66)) ([9217200](https://github.com/noir-lang/noir_base64/commit/92172004f0253823ab27b162fec26d205dd6caaf))
+
 ## [0.5.1](https://github.com/noir-lang/noir_base64/compare/v0.5.0...v0.5.1) (2026-09-30)
 
 
